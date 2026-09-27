@@ -1,0 +1,223 @@
+"""Body composition and Bioelectrical Impedance Analysis (BIA) formulas."""
+
+import math
+from typing import Any, Dict, Optional
+
+
+def clamp(val: float, min_val: float, max_val: float) -> float:
+    """Clamp a value between min and max."""
+    return max(min_val, min(val, max_val))
+
+
+def calculate_metrics(
+    weight: float,
+    height: float,
+    age: int,
+    gender: str,
+    impedance: Optional[float] = None,
+    is_athlete: bool = False,
+) -> Dict[str, Any]:
+    """Calculate comprehensive body metrics given weight, height, age, gender, and optional impedance."""
+    if weight <= 0 or height <= 0 or age <= 0:
+        return {}
+
+    gender = gender.lower()
+    is_male = gender in ["male", "m", "homme"]
+    h_m = height / 100.0
+
+    # 1. BMI (IMC)
+    bmi = round(weight / (h_m * h_m), 1)
+    if bmi < 18.5:
+        bmi_label = "underweight"
+    elif bmi < 25.0:
+        bmi_label = "normal"
+    elif bmi < 30.0:
+        bmi_label = "overweight"
+    elif bmi < 35.0:
+        bmi_label = "obese_1"
+    else:
+        bmi_label = "obese_2"
+
+    # 2. Poids Idéal (Lorentz formula)
+    if is_male:
+        ideal_weight = round(height - 100 - ((height - 150) / 4.0), 1)
+    else:
+        ideal_weight = round(height - 100 - ((height - 150) / 2.5), 1)
+    if ideal_weight <= 20:
+        ideal_weight = round(22.0 * (h_m * h_m), 1)
+
+    # 3. BMR (Métabolisme de Base)
+    # Harris-Benedict & Schofield / Zepp formula
+    if is_male:
+        bmr = round(877.8 + (weight * 14.916) - (height * 0.726) - (age * 8.976), 0)
+    else:
+        bmr = round(864.6 + (weight * 10.2036) - (height * 0.39336) - (age * 6.204), 0)
+    bmr = clamp(bmr, 500, 5000)
+
+    # 4. Graisse Viscérale (Rating 1 - 50)
+    if is_male:
+        if height < weight * 1.6 + 63.0:
+            v_fat = age * 0.15 + ((weight * 305.0) / ((height * 0.0826 * height - height * 0.4) + 48.0) - 2.9)
+        else:
+            v_fat = age * 0.15 + (weight * (height * -0.0015 + 0.765) - height * 0.143) - 5.0
+    else:
+        if weight <= height * 0.5 - 13.0:
+            v_fat = age * 0.07 + (weight * (height * -0.0024 + 0.691) - height * 0.027) - 10.5
+        else:
+            v_fat = age * 0.07 + ((weight * 500.0) / ((height * 1.45 + height * 0.1158 * height) - 120.0) - 6.0)
+    visceral_fat = round(clamp(v_fat, 1.0, 50.0), 1)
+
+    if visceral_fat <= 9.0:
+        visceral_label = "normal"
+    elif visceral_fat <= 14.0:
+        visceral_label = "high"
+    else:
+        visceral_label = "very_high"
+
+    # Check if impedance is provided (> 50 ohm to 1500 ohm)
+    has_impedance = impedance is not None and 50.0 <= impedance <= 1500.0
+
+    if has_impedance:
+        # Lean Body Mass (LBM) using hardware calibrated formula
+        lbm = (
+            (height * 9.058 / 100.0) * (height / 100.0)
+            + weight * 0.32
+            + 12.226
+            - impedance * 0.0068
+            - age * 0.0542
+        )
+        lbm = min(lbm, weight * 0.98)
+
+        # Body Fat Percentage (Zepp Life / Mi Fit formula)
+        if is_male:
+            adjust = 0.8
+            coeff = 0.98 if weight < 61 else 1.0
+        else:
+            adjust = 9.25 if age <= 49 else 7.25
+            coeff = 1.0
+            if weight > 60:
+                coeff = 0.96 * (1.03 if height > 160 else 1.0)
+            elif weight < 50:
+                coeff = 1.02 * (1.03 if height > 160 else 1.0)
+
+        raw_fat = (1.0 - ((lbm - adjust) * coeff / weight)) * 100.0
+        fat_pct = round(clamp(raw_fat, 5.0, 75.0), 1)
+
+        # Bone Mass
+        base = 0.18016894 if is_male else 0.245691014
+        bone = (base - (lbm * 0.05158)) * -1
+        bone += 0.1 if bone > 2.2 else -0.1
+        bone_mass = round(clamp(bone, 0.5, 8.0), 1)
+
+        # Muscle Mass
+        muscle = weight - (fat_pct * 0.01 * weight) - bone_mass
+        muscle_mass = round(clamp(muscle, 10.0, 120.0), 1)
+        muscle_pct = round((muscle_mass / weight) * 100.0, 1)
+
+        # Water Percentage
+        raw_water = (100.0 - fat_pct) * 0.7
+        raw_water *= 1.02 if raw_water <= 50 else 0.98
+        water_pct = round(clamp(raw_water, 35.0, 75.0), 1)
+
+        # Protein Percentage
+        protein_pct = round(clamp((muscle_mass / weight) * 100.0 - water_pct, 5.0, 32.0), 1)
+
+        # Metabolic Age
+        if is_male:
+            metab_age = (height * -0.7471) + (weight * 0.9161) + (age * 0.4184) + (impedance * 0.0517) + 54.2267
+        else:
+            metab_age = (height * -1.1165) + (weight * 1.5784) + (age * 0.4615) + (impedance * 0.0415) + 83.2548
+        metabolic_age = int(round(clamp(metab_age, 15, 85)))
+
+    else:
+        # Fallback estimation without impedance (Deurenberg & Gallagher equations)
+        # Body Fat % = 1.20 * BMI + 0.23 * age - 10.8 * sex - 5.4 (sex=1 male, 0 female)
+        sex_val = 1 if is_male else 0
+        raw_fat = (1.20 * bmi) + (0.23 * age) - (10.8 * sex_val) - 5.4
+        fat_pct = round(clamp(raw_fat, 5.0, 65.0), 1)
+
+        # Approximate water and muscle
+        water_pct = round(clamp((100.0 - fat_pct) * 0.73, 38.0, 70.0), 1)
+        bone_mass = round(2.9 if is_male else 2.3, 1)
+        muscle_mass = round(clamp(weight - (fat_pct * 0.01 * weight) - bone_mass, 10.0, 120.0), 1)
+        muscle_pct = round((muscle_mass / weight) * 100.0, 1)
+        protein_pct = round(clamp(16.5 if is_male else 14.5, 5.0, 25.0), 1)
+        metabolic_age = age
+
+    fat_mass = round((fat_pct / 100.0) * weight, 1)
+    water_mass = round((water_pct / 100.0) * weight, 1)
+
+    # Fat label
+    if is_male:
+        if fat_pct < 10.0:
+            fat_label = "very_low"
+        elif fat_pct < 20.0:
+            fat_label = "normal"
+        elif fat_pct < 25.0:
+            fat_label = "elevated"
+        else:
+            fat_label = "high"
+    else:
+        if fat_pct < 18.0:
+            fat_label = "very_low"
+        elif fat_pct < 28.0:
+            fat_label = "normal"
+        elif fat_pct < 35.0:
+            fat_label = "elevated"
+        else:
+            fat_label = "high"
+
+    # Body Type classification
+    # fat level: 0 high, 1 normal, 2 low
+    fat_level = 0 if fat_label in ["elevated", "high"] else (2 if fat_label == "very_low" else 1)
+    muscle_level = 2 if muscle_pct >= (45.0 if is_male else 38.0) else (0 if muscle_pct < (38.0 if is_male else 30.0) else 1)
+    type_idx = muscle_level + (fat_level * 3)
+    types_list = [
+        "obese", "overweight", "thick_set",
+        "lack_exercise", "balanced", "balanced_muscular",
+        "skinny", "balanced_skinny", "athletic"
+    ]
+    body_type = types_list[type_idx] if 0 <= type_idx < len(types_list) else "balanced"
+
+    # Body Score (0 - 100)
+    score = 100.0
+    # Penalty on BMI deviation from 22.0
+    bmi_diff = abs(bmi - 22.0)
+    score -= min(35.0, bmi_diff * 3.0)
+    # Penalty on visceral fat > 9
+    if visceral_fat > 9:
+        score -= min(25.0, (visceral_fat - 9.0) * 2.5)
+    # Penalty on fat percentage
+    optimal_fat = 15.0 if is_male else 22.0
+    fat_diff = abs(fat_pct - optimal_fat)
+    score -= min(25.0, fat_diff * 1.2)
+    # Penalty on metabolic age vs real age
+    if metabolic_age > age:
+        score -= min(15.0, (metabolic_age - age) * 1.5)
+    else:
+        score += min(5.0, (age - metabolic_age) * 0.5)
+
+    body_score = int(round(clamp(score, 20.0, 100.0)))
+
+    return {
+        "weight": weight,
+        "bmi": bmi,
+        "bmi_label": bmi_label,
+        "ideal_weight": ideal_weight,
+        "fat_percentage": fat_pct,
+        "fat_mass": fat_mass,
+        "fat_label": fat_label,
+        "muscle_mass": muscle_mass,
+        "muscle_percentage": muscle_pct,
+        "water_percentage": water_pct,
+        "water_mass": water_mass,
+        "bone_mass": bone_mass,
+        "visceral_fat": visceral_fat,
+        "visceral_label": visceral_label,
+        "bmr": bmr,
+        "metabolic_age": metabolic_age,
+        "protein_percentage": protein_pct,
+        "body_type": body_type,
+        "body_score": body_score,
+        "impedance": impedance if has_impedance else None,
+    }

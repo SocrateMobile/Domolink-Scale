@@ -1,0 +1,12 @@
+{
+  "domain": "domolink_scale",
+  "name": "Domolink-Scale",
+  "codeowners": ["@jean-fredericlavigne"],
+  "config_flow": true,
+  "documentation": "https://github.com/jean-fredericlavigne/Domolink-Scale",
+  "integration_type": "hub",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/jean-fredericlavigne/Domolink-Scale/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

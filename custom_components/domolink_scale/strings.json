@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Domolink-Scale : Capteurs Principaux",
+        "description": "Sélectionnez les capteurs principaux de votre balance connectée.",
+        "data": {
+          "mass_entity": "Capteur de Poids (Stabilisé / Principal)",
+          "non_stabilized_entity": "Capteur de Poids Non Stabilisé (Optionnel - Xiaomi / ESPHome)",
+          "impedance_entity": "Capteur d'Impédance Brute (Optionnel - Xiaomi / ESPHome)"
+        }
+      },
+      "advanced": {
+        "title": "Domolink-Scale : Capteurs Avancés & Multi-Marques",
+        "description": "Configurez les capteurs additionnels (Withings, Garmin, Eufy, Renpho, etc.) si disponibles.",
+        "data": {
+          "heart_rate_entity": "Fréquence Cardiaque (BPM)",
+          "body_fat_entity": "Masse Grasse Native (%)",
+          "muscle_mass_entity": "Masse Musculaire Native (kg ou %)",
+          "water_entity": "Eau Corporelle Native (%)",
+          "bone_mass_entity": "Masse Osseuse Native (kg)",
+          "visceral_fat_entity": "Graisse Viscérale Native (Indice)",
+          "battery_entity": "Batterie de la balance (%)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Paramètres Domolink-Scale",
+        "description": "Ajustez la liaison des capteurs de la balance et les options d'affichage.",
+        "data": {
+          "mass_entity": "Capteur de Poids",
+          "non_stabilized_entity": "Capteur Non Stabilisé",
+          "impedance_entity": "Capteur d'Impédance",
+          "heart_rate_entity": "Fréquence Cardiaque",
+          "body_fat_entity": "Masse Grasse Native",
+          "muscle_mass_entity": "Masse Musculaire Native",
+          "water_entity": "Eau Corporelle Native",
+          "battery_entity": "Batterie de la balance",
+          "enable_panel": "Activer le panneau dans le menu latéral"
+        }
+      }
+    }
+  }
+}

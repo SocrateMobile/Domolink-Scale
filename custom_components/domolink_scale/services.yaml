@@ -1,0 +1,153 @@
+add_profile:
+  name: Ajouter un profil
+  description: Ajoute un profil utilisateur dans Domolink-Scale.
+  fields:
+    name:
+      name: Nom
+      description: Nom complet de l'utilisateur
+      required: true
+      example: "Jean-Frédéric"
+      selector:
+        text:
+    gender:
+      name: Sexe
+      description: "male ou female"
+      required: true
+      default: "male"
+      selector:
+        select:
+          options:
+            - label: Homme
+              value: male
+            - label: Femme
+              value: female
+    birthdate:
+      name: Date de naissance
+      description: Format AAAA-MM-JJ
+      required: true
+      example: "1980-05-15"
+      selector:
+        date:
+    height:
+      name: Taille
+      description: En centimètres (cm)
+      required: true
+      example: 180
+      selector:
+        number:
+          min: 50
+          max: 230
+          unit_of_measurement: cm
+    reference_weight:
+      name: Poids actuel / référence
+      description: En kg
+      required: true
+      example: 92.35
+      selector:
+        number:
+          min: 10
+          max: 250
+          step: 0.1
+          unit_of_measurement: kg
+    target_weight:
+      name: Poids cible
+      description: Objectif de poids en kg
+      required: true
+      example: 85.0
+      selector:
+        number:
+          min: 10
+          max: 250
+          step: 0.1
+          unit_of_measurement: kg
+    tolerance:
+      name: Tolérance de détection
+      description: Marge en +/- kg pour attribuer la pesée à cet utilisateur
+      required: false
+      default: 3.5
+      selector:
+        number:
+          min: 1.0
+          max: 10.0
+          step: 0.5
+          unit_of_measurement: kg
+    color:
+      name: Couleur de courbe
+      description: Code couleur hexadécimal
+      required: false
+      default: "#3b82f6"
+      selector:
+        color_rgb:
+
+update_profile:
+  name: Modifier un profil
+  description: Met à jour les paramètres d'un profil existant.
+  fields:
+    id:
+      name: Identifiant du profil
+      required: true
+      selector:
+        text:
+    name:
+      name: Nom
+      selector:
+        text:
+    target_weight:
+      name: Poids cible
+      selector:
+        number:
+          min: 10
+          max: 250
+          step: 0.1
+    color:
+      name: Couleur
+      selector:
+        text:
+
+delete_profile:
+  name: Supprimer un profil
+  description: Supprime un profil utilisateur.
+  fields:
+    id:
+      name: Identifiant du profil
+      required: true
+      selector:
+        text:
+
+add_weigh_in:
+  name: Ajouter une pesée
+  description: Enregistre manuellement une pesée.
+  fields:
+    weight:
+      name: Poids (kg)
+      required: true
+      selector:
+        number:
+          min: 10
+          max: 250
+          step: 0.1
+    user_id:
+      name: Profil utilisateur (optionnel)
+      selector:
+        text:
+    impedance:
+      name: Impédance (ohms)
+      selector:
+        number:
+          min: 50
+          max: 1500
+
+reassign_weigh_in:
+  name: Réassigner une pesée
+  description: Change l'utilisateur associé à une pesée historique.
+  fields:
+    id:
+      name: Identifiant de la pesée
+      required: true
+      selector:
+        text:
+    user_id:
+      name: Identifiant du nouvel utilisateur
+      required: true
+      selector:
+        text:

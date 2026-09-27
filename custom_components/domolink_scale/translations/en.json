@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Domolink-Scale: Main Scale Sensors",
+        "description": "Select the primary sensors of your smart scale.",
+        "data": {
+          "mass_entity": "Weight Sensor (Stabilized / Main)",
+          "non_stabilized_entity": "Non-Stabilized Weight Sensor (Optional - Xiaomi / ESPHome)",
+          "impedance_entity": "Raw Impedance Sensor (Optional - Xiaomi / ESPHome)"
+        }
+      },
+      "advanced": {
+        "title": "Domolink-Scale: Advanced & Multi-Brand Sensors",
+        "description": "Configure additional sensors (Withings, Garmin, Eufy, Renpho, etc.) if available.",
+        "data": {
+          "heart_rate_entity": "Heart Rate (BPM)",
+          "body_fat_entity": "Native Body Fat (%)",
+          "muscle_mass_entity": "Native Muscle Mass (kg or %)",
+          "water_entity": "Native Body Water (%)",
+          "bone_mass_entity": "Native Bone Mass (kg)",
+          "visceral_fat_entity": "Native Visceral Fat (Rating)",
+          "battery_entity": "Scale Battery (%)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Domolink-Scale Options",
+        "description": "Adjust scale sensor bindings and display options.",
+        "data": {
+          "mass_entity": "Weight Sensor",
+          "non_stabilized_entity": "Non-Stabilized Weight Sensor",
+          "impedance_entity": "Raw Impedance Sensor",
+          "heart_rate_entity": "Heart Rate Sensor",
+          "body_fat_entity": "Native Body Fat Sensor",
+          "muscle_mass_entity": "Native Muscle Mass Sensor",
+          "water_entity": "Native Body Water Sensor",
+          "battery_entity": "Scale Battery Sensor",
+          "enable_panel": "Enable sidebar menu panel"
+        }
+      }
+    }
+  }
+}
