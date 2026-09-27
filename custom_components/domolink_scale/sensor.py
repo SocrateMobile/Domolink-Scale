@@ -60,6 +60,10 @@ async def async_setup_entry(
                     DomolinkScaleMetricSensor(coordinator, entry, user_id, "bmr", "Métabolisme de Base", "kcal", None),
                     DomolinkScaleMetricSensor(coordinator, entry, user_id, "metabolic_age", "Âge Métabolique", "ans", None),
                     DomolinkScaleMetricSensor(coordinator, entry, user_id, "body_score", "Score Corporel", "/100", None),
+                    DomolinkScaleMetricSensor(coordinator, entry, user_id, "daily_steps_goal", "Pas Conseillés Jour", "pas", None, "mdi:walk"),
+                    DomolinkScaleMetricSensor(coordinator, entry, user_id, "walking_duration_hours", "Durée Marche Conseillée", "h", None, "mdi:timer-sand"),
+                    DomolinkScaleMetricSensor(coordinator, entry, user_id, "walking_distance_km", "Distance Marche Conseillée", "km", None, "mdi:map-marker-distance"),
+                    DomolinkScaleMetricSensor(coordinator, entry, user_id, "walking_calories_kcal", "Calories Marche Estimées", "kcal", None, "mdi:fire"),
                 ])
         if new_entities:
             async_add_entities(new_entities)
@@ -210,6 +214,7 @@ class DomolinkScaleMetricSensor(DomolinkScaleBaseSensor):
         label: str,
         unit: Optional[str],
         device_class: Optional[SensorDeviceClass],
+        icon: Optional[str] = None,
     ) -> None:
         """Initialize metric sensor."""
         super().__init__(coordinator, entry, user_id)
@@ -217,6 +222,8 @@ class DomolinkScaleMetricSensor(DomolinkScaleBaseSensor):
         self._attr_unique_id = f"{entry.entry_id}_{user_id}_{metric_key}"
         self._attr_name = label
         self._attr_native_unit_of_measurement = unit
+        if icon:
+            self._attr_icon = icon
         if device_class:
             self._attr_device_class = device_class
 

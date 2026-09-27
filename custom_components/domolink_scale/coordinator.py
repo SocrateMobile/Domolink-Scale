@@ -323,6 +323,7 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
             impedance=impedance,
             is_athlete=is_athlete,
             category=category,
+            target_weight=target_weight,
         )
 
         if heart_rate is not None:
@@ -432,6 +433,7 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
                     impedance=item.get("impedance"),
                     is_athlete=bool(target_prof.get("is_athlete", False)),
                     category=target_prof.get("category", "adult"),
+                    target_weight=float(target_prof.get("target_weight", 70.0)),
                 )
                 item["metrics"]["target_weight"] = float(target_prof.get("target_weight", 70.0))
                 item["metrics"]["target_delta"] = round(item["weight"] - item["metrics"]["target_weight"], 2)
