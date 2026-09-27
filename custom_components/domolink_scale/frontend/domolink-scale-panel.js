@@ -669,8 +669,8 @@
                   <div class="metric-label">IMC</div>
                   <div class="metric-value">${metrics.bmi || "-"}</div>
                   <div class="metric-sub">
-                    <span class="badge ${metrics.bmi_label === 'normal' ? 'badge-normal' : (metrics.bmi_label === 'overweight' ? 'badge-warning' : 'badge-danger')}">
-                      ${metrics.bmi_label === 'normal' ? 'Normal' : (metrics.bmi_label === 'overweight' ? 'Surpoids' : (metrics.bmi_label || 'N/A'))}
+                    <span class="badge ${['Poids normal', 'Normal', 'Enfant'].includes(metrics.bmi_label) ? 'badge-normal' : (['Surpoids', 'Poids insuffisant'].includes(metrics.bmi_label) ? 'badge-warning' : 'badge-danger')}">
+                      ${metrics.bmi_label || 'N/A'}
                     </span>
                   </div>
                 </div>
@@ -725,6 +725,12 @@
                   <div class="metric-label">Score Corporel</div>
                   <div class="metric-value" style="color: #38bdf8;">${metrics.body_score ? metrics.body_score + '/100' : '-'}</div>
                   <div class="metric-sub">Global santé</div>
+                </div>
+
+                <div class="metric-box">
+                  <div class="metric-label">Silhouette</div>
+                  <div class="metric-value" style="font-size: 14px; font-weight: 600; color: #a78bfa;">${metrics.body_type || "-"}</div>
+                  <div class="metric-sub">Morphologie</div>
                 </div>
               </div>
             `}

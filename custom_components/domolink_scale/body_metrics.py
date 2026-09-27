@@ -127,7 +127,7 @@ def calculate_metrics(
             "category": category,
             "is_pet": True,
             "bmi": None,
-            "bmi_label": None,
+            "bmi_label": "Non applicable",
             "ideal_weight": None,
             "fat_percentage": None,
             "fat_mass": None,
@@ -138,7 +138,7 @@ def calculate_metrics(
             "bmr": None,
             "metabolic_age": None,
             "protein_percentage": None,
-            "body_type": "animal" if category in ["cat", "dog", "chat", "chien"] else "objet",
+            "body_type": "Animal" if category in ["cat", "dog", "chat", "chien"] else "Objet",
             "body_score": None,
             "impedance": None,
         }
@@ -156,7 +156,7 @@ def calculate_metrics(
             "category": "child",
             "is_child": True,
             "bmi": bmi,
-            "bmi_label": "enfant",
+            "bmi_label": "Enfant",
             "ideal_weight": round(20.0 * (h_m * h_m), 1),
             "fat_percentage": None,
             "fat_mass": None,
@@ -167,7 +167,7 @@ def calculate_metrics(
             "bmr": round(weight * 50.0, 0),
             "metabolic_age": age,
             "protein_percentage": 15.0,
-            "body_type": "enfant",
+            "body_type": "Enfant",
             "body_score": 90,
             "impedance": impedance,
         }
@@ -179,15 +179,17 @@ def calculate_metrics(
     is_male = gender in ["male", "m", "homme"]
 
     if bmi < 18.5:
-        bmi_label = "underweight"
+        bmi_label = "Poids insuffisant"
     elif bmi < 25.0:
-        bmi_label = "normal"
+        bmi_label = "Poids normal"
     elif bmi < 30.0:
-        bmi_label = "overweight"
+        bmi_label = "Surpoids"
     elif bmi < 35.0:
-        bmi_label = "obese_1"
+        bmi_label = "Obésité légère"
+    elif bmi < 40.0:
+        bmi_label = "Obésité forte"
     else:
-        bmi_label = "obese_2"
+        bmi_label = "Obésité très forte"
 
     if is_male:
         ideal_weight = round(height - 100 - ((height - 150) / 4.0), 1)
@@ -213,7 +215,7 @@ def calculate_metrics(
         else:
             v_fat = age * 0.07 + ((weight * 500.0) / ((height * 1.45 + height * 0.1158 * height) - 120.0) - 6.0)
     visceral_fat = round(clamp(v_fat, 1.0, 50.0), 1)
-    visceral_label = "normal" if visceral_fat <= 9.0 else ("high" if visceral_fat <= 14.0 else "very_high")
+    visceral_label = "Normal" if visceral_fat <= 9.0 else ("Élevé" if visceral_fat <= 14.0 else "Très élevé")
 
     has_impedance = impedance is not None and 50.0 <= impedance <= 1500.0
 
@@ -277,19 +279,19 @@ def calculate_metrics(
     water_mass = round((water_pct / 100.0) * weight, 1)
 
     if is_male:
-        fat_label = "very_low" if fat_pct < 10.0 else ("normal" if fat_pct < 20.0 else ("elevated" if fat_pct < 25.0 else "high"))
+        fat_label = "Faible" if fat_pct < 10.0 else ("Normal" if fat_pct < 20.0 else ("Élevé" if fat_pct < 25.0 else "Très élevé"))
     else:
-        fat_label = "very_low" if fat_pct < 18.0 else ("normal" if fat_pct < 28.0 else ("elevated" if fat_pct < 35.0 else "high"))
+        fat_label = "Faible" if fat_pct < 18.0 else ("Normal" if fat_pct < 28.0 else ("Élevé" if fat_pct < 35.0 else "Très élevé"))
 
-    fat_level = 0 if fat_label in ["elevated", "high"] else (2 if fat_label == "very_low" else 1)
+    fat_level = 0 if fat_label in ["Élevé", "Très élevé"] else (2 if fat_label == "Faible" else 1)
     muscle_level = 2 if muscle_pct >= (45.0 if is_male else 38.0) else (0 if muscle_pct < (38.0 if is_male else 30.0) else 1)
     type_idx = muscle_level + (fat_level * 3)
     types_list = [
-        "obese", "overweight", "thick_set",
-        "lack_exercise", "balanced", "balanced_muscular",
-        "skinny", "balanced_skinny", "athletic"
+        "Obèse", "En surpoids", "Corpulent",
+        "Manque d'exercice", "Équilibré", "Musclé",
+        "Maigre", "Mince", "Athlétique"
     ]
-    body_type = types_list[type_idx] if 0 <= type_idx < len(types_list) else "balanced"
+    body_type = types_list[type_idx] if 0 <= type_idx < len(types_list) else "Équilibré"
 
     score = 100.0
     bmi_diff = abs(bmi - 22.0)

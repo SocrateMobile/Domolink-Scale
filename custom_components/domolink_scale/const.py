@@ -2,7 +2,7 @@
 
 DOMAIN = "domolink_scale"
 NAME = "Domolink-Scale"
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 # Panel Constants
 PANEL_TITLE = "Domolink Scale"
