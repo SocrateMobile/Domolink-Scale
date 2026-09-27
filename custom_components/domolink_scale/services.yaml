@@ -1,18 +1,34 @@
 add_profile:
   name: Ajouter un profil
-  description: Ajoute un profil utilisateur dans Domolink-Scale.
+  description: Ajoute un profil utilisateur/enfant/animal dans Domolink-Scale.
   fields:
     name:
       name: Nom
-      description: Nom complet de l'utilisateur
+      description: Nom complet ou prénom
       required: true
       example: "Jean-Frédéric"
       selector:
         text:
+    category:
+      name: Catégorie
+      description: Type de profil
+      required: false
+      default: "adult"
+      selector:
+        select:
+          options:
+            - label: Adulte
+              value: adult
+            - label: Enfant
+              value: child
+            - label: Chat
+              value: cat
+            - label: Chien
+              value: dog
     gender:
       name: Sexe
       description: "male ou female"
-      required: true
+      required: false
       default: "male"
       selector:
         select:
@@ -24,18 +40,18 @@ add_profile:
     birthdate:
       name: Date de naissance
       description: Format AAAA-MM-JJ
-      required: true
+      required: false
       example: "1980-05-15"
       selector:
         date:
     height:
       name: Taille
       description: En centimètres (cm)
-      required: true
+      required: false
       example: 180
       selector:
         number:
-          min: 50
+          min: 30
           max: 230
           unit_of_measurement: cm
     reference_weight:
@@ -45,39 +61,39 @@ add_profile:
       example: 92.35
       selector:
         number:
-          min: 10
+          min: 2
           max: 250
           step: 0.1
           unit_of_measurement: kg
     target_weight:
       name: Poids cible
       description: Objectif de poids en kg
-      required: true
+      required: false
       example: 85.0
       selector:
         number:
-          min: 10
+          min: 2
           max: 250
           step: 0.1
           unit_of_measurement: kg
     tolerance:
       name: Tolérance de détection
-      description: Marge en +/- kg pour attribuer la pesée à cet utilisateur
+      description: Marge en +/- kg pour attribuer la pesée à cet utilisateur (défaut 5.0 kg)
       required: false
-      default: 3.5
+      default: 5.0
       selector:
         number:
           min: 1.0
-          max: 10.0
+          max: 15.0
           step: 0.5
           unit_of_measurement: kg
     color:
       name: Couleur de courbe
       description: Code couleur hexadécimal
       required: false
-      default: "#3b82f6"
+      default: "#0284c7"
       selector:
-        color_rgb:
+        text:
 
 update_profile:
   name: Modifier un profil
@@ -92,15 +108,43 @@ update_profile:
       name: Nom
       selector:
         text:
+    category:
+      name: Catégorie
+      selector:
+        select:
+          options:
+            - label: Adulte
+              value: adult
+            - label: Enfant
+              value: child
+            - label: Chat
+              value: cat
+            - label: Chien
+              value: dog
     target_weight:
       name: Poids cible
       selector:
         number:
-          min: 10
+          min: 2
           max: 250
           step: 0.1
     color:
       name: Couleur
+      selector:
+        text:
+
+merge_profiles:
+  name: Fusionner deux profils
+  description: Transfère tout l'historique du profil source vers le profil cible et supprime la source.
+  fields:
+    source_id:
+      name: Identifiant du profil à fusionner (source)
+      required: true
+      selector:
+        text:
+    target_id:
+      name: Identifiant du profil de destination (cible)
+      required: true
       selector:
         text:
 
@@ -123,7 +167,7 @@ add_weigh_in:
       required: true
       selector:
         number:
-          min: 10
+          min: 2
           max: 250
           step: 0.1
     user_id:

@@ -1,26 +1,41 @@
 /**
- * Domolink-Scale — Panneau Tactile & Suivi Corporel Multi-Marques (v1.0.0)
- * Suite DomoLink — Glassmorphism, multi-courbes SVG, analyse BIA & profils personnalisés.
+ * Domolink-Scale — Panneau Tactile & Suivi Corporel Multi-Marques (v1.1.0)
+ * Suite DomoLink — Glassmorphism, multi-courbes SVG, analyse BIA, profils (Adulte/Enfant/Animaux), tare & fusion.
  */
 
 (function () {
   const PANEL_NAME = "domolink-scale-panel";
 
   const DEFAULT_COLORS = [
-    "#3b82f6", "#10b981", "#f59e0b", "#ec4899",
-    "#8b5cf6", "#06b6d4", "#f97316", "#14b8a6"
+    "#0284c7", "#10b981", "#f59e0b", "#ec4899",
+    "#8b5cf6", "#06b6d4", "#f97316", "#14b8a6", "#6366f1"
   ];
+
+  const CATEGORY_ICONS = {
+    adult: "👤",
+    child: "👶",
+    cat: "🐱",
+    dog: "🐶",
+    luggage: "🧳",
+  };
+
+  const CATEGORY_LABELS = {
+    adult: "Adulte",
+    child: "Enfant",
+    cat: "Chat",
+    dog: "Chien",
+    luggage: "Bagage",
+  };
 
   class DomolinkScalePanel extends HTMLElement {
     constructor() {
       super();
       this.attachShadow({ mode: "open" });
-      this._data = { profiles: [], history: [], config: {}, options: {} };
+      this._data = { profiles: [], history: [], last_tare: null, config: {}, options: {} };
       this._activeTab = "dashboard";
       this._selectedUserId = "all";
-      this._timeFilter = "30d"; // 7d, 30d, 90d, 1y, all
-      this._hoveredPoint = null;
-      this._editingProfile = null;
+      this._timeFilter = "30d";
+      this._showTrend = true;
     }
 
     set hass(hass) {
@@ -65,7 +80,7 @@
     async _fetchData() {
       if (!this._hass) return;
       try {
-        const res = await this._hass.fetchWithAuth("/api/domolink_scale/data?limit=1000");
+        const res = await this._hass.fetchWithAuth("/api/domolink_scale/data?limit=1500");
         if (res.ok) {
           this._data = await res.json();
           this._render();
@@ -86,14 +101,12 @@
     }
 
     _render() {
-      const { profiles, history } = this._data;
+      const { profiles, history, last_tare } = this._data;
 
-      // Select active user object
       const activeProfile = this._selectedUserId !== "all" 
         ? profiles.find(p => p.id === this._selectedUserId) 
         : (profiles[0] || null);
 
-      // Latest measurement
       const latestItem = activeProfile && activeProfile.latest_metrics && Object.keys(activeProfile.latest_metrics).length > 0
         ? { metrics: activeProfile.latest_metrics, weight: activeProfile.reference_weight, timestamp: activeProfile.last_weigh_in, user_name: activeProfile.name }
         : (history.length > 0 ? history[history.length - 1] : null);
@@ -120,7 +133,7 @@
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
             padding: 14px 24px;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
           }
           .brand {
@@ -187,6 +200,30 @@
             background: linear-gradient(135deg, #0369a1, #075985);
           }
 
+          /* Tare Banner */
+          .tare-banner {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(6, 182, 212, 0.15));
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 12px;
+            padding: 10px 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+          }
+          .tare-text {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #e2e8f0;
+          }
+          .tare-weight-badge {
+            font-size: 16px;
+            font-weight: 800;
+            color: #34d399;
+          }
+
           /* Tabs */
           .tabs {
             display: flex;
@@ -195,7 +232,7 @@
             padding: 6px;
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             width: fit-content;
           }
           .tab-btn {
@@ -317,7 +354,7 @@
           /* Chart SVG Container */
           .chart-container {
             width: 100%;
-            height: 320px;
+            height: 330px;
             position: relative;
           }
           svg.scale-chart {
@@ -332,6 +369,7 @@
             align-items: baseline;
             gap: 8px;
             margin-bottom: 14px;
+            flex-wrap: wrap;
           }
           .hero-val {
             font-size: 42px;
@@ -352,7 +390,7 @@
             border-radius: 20px;
             font-size: 12px;
             font-weight: 700;
-            margin-left: 12px;
+            margin-left: 8px;
           }
           .target-loss {
             background: rgba(16, 185, 129, 0.15);
@@ -363,6 +401,15 @@
             background: rgba(245, 158, 11, 0.15);
             color: #fbbf24;
             border: 1px solid rgba(245, 158, 11, 0.3);
+          }
+          .trend-badge {
+            background: rgba(2, 132, 199, 0.15);
+            border: 1px solid rgba(2, 132, 199, 0.3);
+            color: #38bdf8;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
           }
 
           /* Metrics Mini Grid */
@@ -434,7 +481,7 @@
           .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             backdrop-filter: blur(8px);
             display: flex;
             align-items: center;
@@ -496,7 +543,7 @@
             <div class="brand-icon">⚖️</div>
             <div class="brand-text">
               <h1>Domolink-Scale</h1>
-              <p>Suivi Corporel & Composition BIA Multi-Marques</p>
+              <p>Suivi Multi-Marques • Attribution Biométrique & Tare</p>
             </div>
           </div>
           <div class="header-actions">
@@ -505,11 +552,26 @@
           </div>
         </div>
 
+        <!-- Tare Notification Banner if present -->
+        ${last_tare ? `
+          <div class="tare-banner">
+            <div class="tare-text">
+              <span>👶🐱🧳</span>
+              <div>
+                <strong>Dernière Tare détectée :</strong>
+                <span class="tare-weight-badge">+${last_tare.tare_weight} kg</span>
+                <span style="color: #94a3b8; font-size: 12px;">(Pèse-personne avec ${last_tare.base_user_name || 'utilisateur'} • ${this._formatDate(last_tare.timestamp)})</span>
+              </div>
+            </div>
+            <button class="btn" id="btn-assign-tare" style="font-size: 12px; padding: 4px 10px;">Attribuer</button>
+          </div>
+        ` : ''}
+
         <!-- Navigation Tabs -->
         <div class="tabs">
           <button class="tab-btn ${this._activeTab === "dashboard" ? "active" : ""}" data-tab="dashboard">📊 Évolution & Analyse</button>
           <button class="tab-btn ${this._activeTab === "history" ? "active" : ""}" data-tab="history">📋 Historique (${history.length})</button>
-          <button class="tab-btn ${this._activeTab === "settings" ? "active" : ""}" data-tab="settings">⚙️ Profils & Paramètres</button>
+          <button class="tab-btn ${this._activeTab === "settings" ? "active" : ""}" data-tab="settings">⚙️ Profils & Paramètres (${profiles.length})</button>
         </div>
 
         <!-- User Switcher -->
@@ -520,7 +582,8 @@
             </div>
             ${profiles.map(p => `
               <div class="user-pill ${this._selectedUserId === p.id ? "active" : ""}" data-user="${p.id}">
-                <div class="user-color-dot" style="background: ${p.color || '#3b82f6'};"></div>
+                <span style="font-size: 14px;">${CATEGORY_ICONS[p.category || 'adult'] || '👤'}</span>
+                <div class="user-color-dot" style="background: ${p.color || '#0284c7'};"></div>
                 <span>${p.name}</span>
               </div>
             `).join("")}
@@ -546,10 +609,13 @@
       const curWeight = (latestItem && latestItem.weight) || (activeProfile && activeProfile.reference_weight) || 0;
       const targetWeight = (activeProfile && activeProfile.target_weight) || 0;
       const delta = targetWeight > 0 ? (curWeight - targetWeight).toFixed(1) : null;
+      const trend = activeProfile?.trend_7d || null;
+      const isPet = activeProfile && ["cat", "dog", "chat", "chien", "luggage"].includes(activeProfile.category);
+      const isChild = activeProfile && activeProfile.category === "child";
 
       return `
         <div class="dashboard-grid">
-          <!-- Graphique interactif multi-courbes -->
+          <!-- Graphique interactif multi-courbes avec Tendance -->
           <div class="card">
             <div class="card-header">
               <div class="card-title">📈 Évolution du Poids & Objectifs</div>
@@ -561,91 +627,107 @@
                 <button class="time-btn ${this._timeFilter === "all" ? "active" : ""}" data-time="all">Tout</button>
               </div>
             </div>
-            <div class="chart-container" id="chart-box">
-              <!-- SVG chart rendered via _renderChart() -->
-            </div>
+            <div class="chart-container" id="chart-box"></div>
           </div>
 
-          <!-- Analyse Corporelle de la dernière pesée -->
+          <!-- Analyse Corporelle -->
           <div class="card">
             <div class="card-header">
-              <div class="card-title">🧬 Composition Corporelle</div>
+              <div class="card-title">
+                ${CATEGORY_ICONS[activeProfile?.category || 'adult'] || '👤'} 
+                ${activeProfile?.name || 'Profil'} • Composition
+              </div>
               <span style="font-size: 12px; color: #94a3b8;">${this._formatDate(latestItem?.timestamp)}</span>
             </div>
 
             <div class="hero-metric">
               <div class="hero-val">${curWeight.toFixed(2)}</div>
               <div class="hero-unit">kg</div>
+
               ${delta !== null ? `
                 <div class="hero-target-pill ${delta <= 0 ? 'target-loss' : 'target-gain'}">
                   🎯 Cible : ${targetWeight} kg (${delta > 0 ? '+' : ''}${delta} kg)
                 </div>
               ` : ''}
+
+              ${trend ? `
+                <div class="trend-badge">
+                  📊 Tendance 7j : ${trend} kg
+                </div>
+              ` : ''}
             </div>
 
-            <div class="metrics-grid">
-              <div class="metric-box">
-                <div class="metric-label">IMC</div>
-                <div class="metric-value">${metrics.bmi || "-"}</div>
-                <div class="metric-sub">
-                  <span class="badge ${metrics.bmi_label === 'normal' ? 'badge-normal' : (metrics.bmi_label === 'overweight' ? 'badge-warning' : 'badge-danger')}">
-                    ${metrics.bmi_label === 'normal' ? 'Normal' : (metrics.bmi_label === 'overweight' ? 'Surpoids' : (metrics.bmi_label || 'N/A'))}
-                  </span>
+            ${isPet ? `
+              <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 20px; text-align: center; color: #94a3b8;">
+                <div style="font-size: 32px; margin-bottom: 8px;">${CATEGORY_ICONS[activeProfile.category] || '🐾'}</div>
+                <div style="font-size: 15px; font-weight: 700; color: #f8fafc;">Profil Animal de compagnie</div>
+                <p style="font-size: 13px; margin: 4px 0 0;">Le suivi se concentre sur l'évolution du poids et les pesées par tare.</p>
+              </div>
+            ` : `
+              <div class="metrics-grid">
+                <div class="metric-box">
+                  <div class="metric-label">IMC</div>
+                  <div class="metric-value">${metrics.bmi || "-"}</div>
+                  <div class="metric-sub">
+                    <span class="badge ${metrics.bmi_label === 'normal' ? 'badge-normal' : (metrics.bmi_label === 'overweight' ? 'badge-warning' : 'badge-danger')}">
+                      ${metrics.bmi_label === 'normal' ? 'Normal' : (metrics.bmi_label === 'overweight' ? 'Surpoids' : (metrics.bmi_label || 'N/A'))}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="metric-box">
+                  <div class="metric-label">Masse Grasse</div>
+                  <div class="metric-value">${metrics.fat_percentage ? metrics.fat_percentage + '%' : '-'}</div>
+                  <div class="metric-sub">${metrics.fat_mass ? metrics.fat_mass + ' kg' : '-'}</div>
+                </div>
+
+                <div class="metric-box">
+                  <div class="metric-label">Masse Musculaire</div>
+                  <div class="metric-value">${metrics.muscle_mass ? metrics.muscle_mass + ' kg' : '-'}</div>
+                  <div class="metric-sub">${metrics.muscle_percentage ? metrics.muscle_percentage + '%' : '-'}</div>
+                </div>
+
+                <div class="metric-box">
+                  <div class="metric-label">Eau Corporelle</div>
+                  <div class="metric-value">${metrics.water_percentage ? metrics.water_percentage + '%' : '-'}</div>
+                  <div class="metric-sub">${metrics.water_mass ? metrics.water_mass + ' L' : '-'}</div>
+                </div>
+
+                <div class="metric-box">
+                  <div class="metric-label">Graisse Viscérale</div>
+                  <div class="metric-value">${metrics.visceral_fat || "-"}</div>
+                  <div class="metric-sub">
+                    <span class="badge ${metrics.visceral_fat <= 9 ? 'badge-normal' : 'badge-warning'}">
+                      ${metrics.visceral_fat <= 9 ? 'Sain (≤9)' : 'Élevé (>9)'}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="metric-box">
+                  <div class="metric-label">Masse Osseuse</div>
+                  <div class="metric-value">${metrics.bone_mass ? metrics.bone_mass + ' kg' : '-'}</div>
+                  <div class="metric-sub">Minéralisation</div>
+                </div>
+
+                <div class="metric-box">
+                  <div class="metric-label">Métabolisme (BMR)</div>
+                  <div class="metric-value">${metrics.bmr || "-"}</div>
+                  <div class="metric-sub">kcal / jour</div>
+                </div>
+
+                <div class="metric-box">
+                  <div class="metric-label">Âge Métabolique</div>
+                  <div class="metric-value">${metrics.metabolic_age ? metrics.metabolic_age + ' ans' : '-'}</div>
+                  <div class="metric-sub">Estimation BIA</div>
+                </div>
+
+                <div class="metric-box">
+                  <div class="metric-label">Score Corporel</div>
+                  <div class="metric-value" style="color: #38bdf8;">${metrics.body_score ? metrics.body_score + '/100' : '-'}</div>
+                  <div class="metric-sub">Global santé</div>
                 </div>
               </div>
-
-              <div class="metric-box">
-                <div class="metric-label">Masse Grasse</div>
-                <div class="metric-value">${metrics.fat_percentage ? metrics.fat_percentage + '%' : '-'}</div>
-                <div class="metric-sub">${metrics.fat_mass ? metrics.fat_mass + ' kg' : '-'}</div>
-              </div>
-
-              <div class="metric-box">
-                <div class="metric-label">Masse Musculaire</div>
-                <div class="metric-value">${metrics.muscle_mass ? metrics.muscle_mass + ' kg' : '-'}</div>
-                <div class="metric-sub">${metrics.muscle_percentage ? metrics.muscle_percentage + '%' : '-'}</div>
-              </div>
-
-              <div class="metric-box">
-                <div class="metric-label">Eau Corporelle</div>
-                <div class="metric-value">${metrics.water_percentage ? metrics.water_percentage + '%' : '-'}</div>
-                <div class="metric-sub">${metrics.water_mass ? metrics.water_mass + ' L' : '-'}</div>
-              </div>
-
-              <div class="metric-box">
-                <div class="metric-label">Graisse Viscérale</div>
-                <div class="metric-value">${metrics.visceral_fat || "-"}</div>
-                <div class="metric-sub">
-                  <span class="badge ${metrics.visceral_fat <= 9 ? 'badge-normal' : 'badge-warning'}">
-                    ${metrics.visceral_fat <= 9 ? 'Sain (≤9)' : 'Élevé (>9)'}
-                  </span>
-                </div>
-              </div>
-
-              <div class="metric-box">
-                <div class="metric-label">Masse Osseuse</div>
-                <div class="metric-value">${metrics.bone_mass ? metrics.bone_mass + ' kg' : '-'}</div>
-                <div class="metric-sub">Minéralisation</div>
-              </div>
-
-              <div class="metric-box">
-                <div class="metric-label">Métabolisme (BMR)</div>
-                <div class="metric-value">${metrics.bmr || "-"}</div>
-                <div class="metric-sub">kcal / jour</div>
-              </div>
-
-              <div class="metric-box">
-                <div class="metric-label">Âge Métabolique</div>
-                <div class="metric-value">${metrics.metabolic_age ? metrics.metabolic_age + ' ans' : '-'}</div>
-                <div class="metric-sub">Estimation BIA</div>
-              </div>
-
-              <div class="metric-box">
-                <div class="metric-label">Score Corporel</div>
-                <div class="metric-value" style="color: #38bdf8;">${metrics.body_score ? metrics.body_score + '/100' : '-'}</div>
-                <div class="metric-sub">Global santé</div>
-              </div>
-            </div>
+            `}
           </div>
         </div>
       `;
@@ -656,12 +738,11 @@
       if (!container) return;
 
       const width = container.clientWidth || 600;
-      const height = container.clientHeight || 300;
-      const padding = { top: 20, right: 30, bottom: 40, left: 45 };
+      const height = container.clientHeight || 330;
+      const padding = { top: 25, right: 30, bottom: 40, left: 45 };
 
       const { profiles, history } = this._data;
 
-      // Filter by timeframe
       const now = new Date().getTime();
       let minTime = 0;
       if (this._timeFilter === "7d") minTime = now - 7 * 86400 * 1000;
@@ -677,18 +758,16 @@
       if (filteredHistory.length === 0) {
         container.innerHTML = `
           <div style="display: flex; height: 100%; align-items: center; justify-content: center; color: #64748b; font-size: 14px;">
-            Aucune donnée de pesée pour cette période.
+            Aucune pesée enregistrée pour cette période.
           </div>
         `;
         return;
       }
 
-      // Group points by user
       const usersToDisplay = this._selectedUserId === "all" 
         ? profiles 
         : profiles.filter(p => p.id === this._selectedUserId);
 
-      // Find min/max weights for Y scale
       let minWeight = Infinity;
       let maxWeight = -Infinity;
       filteredHistory.forEach(h => {
@@ -718,7 +797,6 @@
         return height - padding.bottom - ((w - minWeight) / (maxWeight - minWeight)) * (height - padding.top - padding.bottom);
       };
 
-      // Y-axis grid lines
       let yGridSvg = "";
       const step = (maxWeight - minWeight) / 4;
       for (let i = 0; i <= 4; i++) {
@@ -730,10 +808,9 @@
         `;
       }
 
-      // Draw lines per user
       let linesSvg = "";
       usersToDisplay.forEach(u => {
-        const uColor = u.color || "#3b82f6";
+        const uColor = u.color || "#0284c7";
         const uHistory = filteredHistory.filter(h => h.user_id === u.id);
 
         // Draw target line
@@ -750,7 +827,6 @@
 
         if (uHistory.length === 0) return;
 
-        // Path points
         const points = uHistory.map(h => ({
           x: getX(new Date(h.timestamp).getTime()),
           y: getY(h.weight),
@@ -762,7 +838,7 @@
           dPath += ` L ${points[i].x} ${points[i].y}`;
         }
 
-        // Draw smooth polyline
+        // Draw actual curve
         linesSvg += `
           <path d="${dPath}" fill="none" stroke="${uColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
         `;
@@ -770,8 +846,7 @@
         // Draw dots
         points.forEach(p => {
           linesSvg += `
-            <circle cx="${p.x}" cy="${p.y}" r="5" fill="#0f172a" stroke="${uColor}" stroke-width="2.5" class="chart-dot" 
-                    data-info="${p.data.user_name} | ${p.data.weight} kg | ${this._formatDate(p.data.timestamp)}">
+            <circle cx="${p.x}" cy="${p.y}" r="5" fill="#0f172a" stroke="${uColor}" stroke-width="2.5" class="chart-dot">
               <title>${p.data.user_name}: ${p.data.weight} kg (${this._formatDate(p.data.timestamp)})</title>
             </circle>
           `;
@@ -844,37 +919,40 @@
 
             <div style="display: flex; flex-direction: column; gap: 12px;">
               ${profiles.map(p => `
-                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;">
+                <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                   <div style="display: flex; align-items: center; gap: 14px;">
-                    <div style="width: 24px; height: 24px; border-radius: 50%; background: ${p.color || '#3b82f6'}; border: 2px solid #ffffff;"></div>
+                    <div style="font-size: 24px;">${CATEGORY_ICONS[p.category || 'adult'] || '👤'}</div>
+                    <div style="width: 14px; height: 14px; border-radius: 50%; background: ${p.color || '#0284c7'}; border: 2px solid #ffffff;"></div>
                     <div>
-                      <div style="font-size: 15px; font-weight: 700; color: #ffffff;">${p.name}</div>
+                      <div style="font-size: 15px; font-weight: 700; color: #ffffff;">${p.name} <span style="font-size: 11px; color: #94a3b8;">(${CATEGORY_LABELS[p.category || 'adult'] || 'Adulte'})</span></div>
                       <div style="font-size: 12px; color: #94a3b8;">
-                        ${p.gender === 'male' ? 'Homme' : 'Femme'} • ${p.height} cm • Cible: ${p.target_weight} kg (±${p.tolerance} kg)
+                        ${p.height ? p.height + ' cm • ' : ''}Ref: ${p.reference_weight} kg • Cible: ${p.target_weight} kg (±${p.tolerance} kg)
                       </div>
                     </div>
                   </div>
-                  <div style="display: flex; gap: 8px;">
-                    <button class="btn btn-edit-profile" data-id="${p.id}" style="padding: 6px 12px; font-size: 12px;">✏️ Modifier</button>
-                    <button class="btn btn-delete-profile" data-id="${p.id}" style="padding: 6px 12px; font-size: 12px; color: #f87171;">🗑️</button>
+                  <div style="display: flex; gap: 6px;">
+                    <button class="btn btn-merge-profile" data-id="${p.id}" style="padding: 6px 10px; font-size: 12px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">🔀 Fusionner</button>
+                    <button class="btn btn-edit-profile" data-id="${p.id}" style="padding: 6px 10px; font-size: 12px;">✏️ Modifier</button>
+                    <button class="btn btn-delete-profile" data-id="${p.id}" style="padding: 6px 10px; font-size: 12px; color: #f87171;">🗑️</button>
                   </div>
                 </div>
               `).join("")}
             </div>
           </div>
 
-          <!-- Documentation & Infos Domolink -->
+          <!-- Documentation & Fonctionnement -->
           <div class="card">
             <div class="card-header">
-              <div class="card-title">ℹ️ Algorithme Multi-Marques</div>
+              <div class="card-title">ℹ️ Attribution Intelligente & Tare</div>
             </div>
             <p style="font-size: 13px; color: #cbd5e1; line-height: 1.6;">
-              <strong>Domolink-Scale</strong> prend en charge les balances universelles (Xiaomi, Withings, Garmin, Eufy, etc.).
+              <strong>Domolink-Scale</strong> gère automatiquement toute la famille :
             </p>
             <ul style="font-size: 13px; color: #94a3b8; line-height: 1.7; padding-left: 20px;">
-              <li><strong>Attribution intelligente :</strong> Détection automatique du profil via la fenêtre de tolérance (± kg) autour du dernier poids mesuré.</li>
-              <li><strong>Calculs BIA :</strong> Équations scientifiques médicales (formules Zepp/Tanita/Deurenberg) calculant 13 métriques corporelles complètes.</li>
-              <li><strong>Couleur personnalisée :</strong> Chaque profil a sa propre couleur d'affichage sur les graphiques d'évolution.</li>
+              <li><strong>Attribution par Poids & Impédance :</strong> Croise le poids mesuré avec la signature d'impédance biologique pour distinguer deux personnes de corpulence similaire.</li>
+              <li><strong>Création Auto (> 5 kg) :</strong> Si une pesée s'écarte de plus de 5 kg de tous les membres connus, un nouveau profil est créé automatiquement.</li>
+              <li><strong>Mode Tare (Bébé / Chien / Chat) :</strong> Si vous montez sur la balance puis remontez dans les 3 minutes avec un animal ou un bébé dans les bras, le surplus est automatiquement calculé en tare !</li>
+              <li><strong>Fusion en 1 Clic :</strong> Vous pouvez fusionner n'importe quel profil temporaire avec un profil existant.</li>
             </ul>
           </div>
         </div>
@@ -882,7 +960,6 @@
     }
 
     _attachEvents() {
-      // Tab navigation
       this.shadowRoot.querySelectorAll(".tab-btn").forEach(btn => {
         btn.addEventListener("click", () => {
           this._activeTab = btn.getAttribute("data-tab");
@@ -890,7 +967,6 @@
         });
       });
 
-      // User pill filter
       this.shadowRoot.querySelectorAll(".user-pill").forEach(pill => {
         pill.addEventListener("click", () => {
           this._selectedUserId = pill.getAttribute("data-user");
@@ -898,7 +974,6 @@
         });
       });
 
-      // Time filter buttons
       this.shadowRoot.querySelectorAll(".time-btn").forEach(btn => {
         btn.addEventListener("click", () => {
           this._timeFilter = btn.getAttribute("data-time");
@@ -906,25 +981,26 @@
         });
       });
 
-      // Refresh button
       const btnRefresh = this.shadowRoot.getElementById("btn-refresh");
       if (btnRefresh) {
         btnRefresh.addEventListener("click", () => this._fetchData());
       }
 
-      // Add weigh in modal
       const btnAddWeighIn = this.shadowRoot.getElementById("btn-add-weigh-in");
       if (btnAddWeighIn) {
         btnAddWeighIn.addEventListener("click", () => this._showAddWeighInModal());
       }
 
-      // New profile button
+      const btnAssignTare = this.shadowRoot.getElementById("btn-assign-tare");
+      if (btnAssignTare && this._data.last_tare) {
+        btnAssignTare.addEventListener("click", () => this._showAddWeighInModal(this._data.last_tare.tare_weight));
+      }
+
       const btnNewProfile = this.shadowRoot.getElementById("btn-new-profile");
       if (btnNewProfile) {
         btnNewProfile.addEventListener("click", () => this._showProfileModal());
       }
 
-      // Edit profile
       this.shadowRoot.querySelectorAll(".btn-edit-profile").forEach(btn => {
         btn.addEventListener("click", () => {
           const pId = btn.getAttribute("data-id");
@@ -933,7 +1009,13 @@
         });
       });
 
-      // Delete profile
+      this.shadowRoot.querySelectorAll(".btn-merge-profile").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const pId = btn.getAttribute("data-id");
+          this._showMergeModal(pId);
+        });
+      });
+
       this.shadowRoot.querySelectorAll(".btn-delete-profile").forEach(btn => {
         btn.addEventListener("click", async () => {
           const pId = btn.getAttribute("data-id");
@@ -947,7 +1029,6 @@
         });
       });
 
-      // Delete weigh in
       this.shadowRoot.querySelectorAll(".btn-delete-weigh-in").forEach(btn => {
         btn.addEventListener("click", async () => {
           const id = btn.getAttribute("data-id");
@@ -961,7 +1042,6 @@
         });
       });
 
-      // Reassign weigh in
       this.shadowRoot.querySelectorAll(".btn-reassign").forEach(btn => {
         btn.addEventListener("click", () => {
           const id = btn.getAttribute("data-id");
@@ -975,25 +1055,39 @@
       const isEdit = !!profile;
       const p = profile || {
         name: "",
+        category: "adult",
         gender: "male",
         birthdate: "1985-01-01",
         height: 178,
         reference_weight: 80.0,
         target_weight: 75.0,
-        tolerance: 3.5,
+        tolerance: 5.0,
         color: DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)],
       };
 
       container.innerHTML = `
-        <div class="modal-overlay" id="profile-modal-overlay">
+        <div class="modal-overlay">
           <div class="modal-card">
             <h2 style="margin-top: 0; font-size: 18px; color: #ffffff;">
-              ${isEdit ? "✏️ Modifier le Profil" : "➕ Nouveau Profil Utilisateur"}
+              ${isEdit ? "✏️ Modifier le Profil" : "➕ Nouveau Profil Utilisateur / Animal"}
             </h2>
 
-            <div class="form-group">
-              <label>Nom ou Prénom</label>
-              <input type="text" id="prof-name" class="form-input" value="${p.name}" placeholder="Ex: Jean-Frédéric" required />
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div class="form-group">
+                <label>Nom ou Prénom</label>
+                <input type="text" id="prof-name" class="form-input" value="${p.name}" placeholder="Ex: Jean-Frédéric, Minou..." required />
+              </div>
+
+              <div class="form-group">
+                <label>Catégorie</label>
+                <select id="prof-category" class="form-input">
+                  <option value="adult" ${p.category === 'adult' ? 'selected' : ''}>👤 Adulte</option>
+                  <option value="child" ${p.category === 'child' ? 'selected' : ''}>👶 Enfant</option>
+                  <option value="cat" ${p.category === 'cat' ? 'selected' : ''}>🐱 Chat</option>
+                  <option value="dog" ${p.category === 'dog' ? 'selected' : ''}>🐶 Chien</option>
+                  <option value="luggage" ${p.category === 'luggage' ? 'selected' : ''}>🧳 Bagage</option>
+                </select>
+              </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -1018,28 +1112,28 @@
               </div>
 
               <div class="form-group">
-                <label>Poids Actuel / Référence (kg)</label>
+                <label>Poids Référence (kg)</label>
                 <input type="number" id="prof-ref-weight" class="form-input" value="${p.reference_weight}" step="0.1" />
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
               <div class="form-group">
-                <label>Poids Cible / Objectif (kg)</label>
+                <label>Poids Cible (kg)</label>
                 <input type="number" id="prof-target-weight" class="form-input" value="${p.target_weight}" step="0.1" />
               </div>
 
               <div class="form-group">
                 <label>Tolérance Détection (± kg)</label>
-                <input type="number" id="prof-tolerance" class="form-input" value="${p.tolerance}" step="0.5" />
+                <input type="number" id="prof-tolerance" class="form-input" value="${p.tolerance || 5.0}" step="0.5" />
               </div>
             </div>
 
             <div class="form-group">
-              <label>Couleur Personnalisée de la Courbe</label>
+              <label>Couleur de la Courbe</label>
               <div class="color-picker-wrapper">
-                <input type="color" id="prof-color" value="${p.color || '#3b82f6'}" />
-                <span style="font-size: 13px; color: #cbd5e1;" id="color-hex-label">${p.color || '#3b82f6'}</span>
+                <input type="color" id="prof-color" value="${p.color || '#0284c7'}" />
+                <span style="font-size: 13px; color: #cbd5e1;" id="color-hex-label">${p.color || '#0284c7'}</span>
               </div>
             </div>
 
@@ -1064,12 +1158,13 @@
       container.querySelector("#modal-save").addEventListener("click", async () => {
         const payload = {
           name: container.querySelector("#prof-name").value,
+          category: container.querySelector("#prof-category").value,
           gender: container.querySelector("#prof-gender").value,
           birthdate: container.querySelector("#prof-birthdate").value,
-          height: parseFloat(container.querySelector("#prof-height").value),
-          reference_weight: parseFloat(container.querySelector("#prof-ref-weight").value),
-          target_weight: parseFloat(container.querySelector("#prof-target-weight").value),
-          tolerance: parseFloat(container.querySelector("#prof-tolerance").value),
+          height: parseFloat(container.querySelector("#prof-height").value) || 175,
+          reference_weight: parseFloat(container.querySelector("#prof-ref-weight").value) || 70,
+          target_weight: parseFloat(container.querySelector("#prof-target-weight").value) || 65,
+          tolerance: parseFloat(container.querySelector("#prof-tolerance").value) || 5.0,
           color: colorInput.value,
         };
 
@@ -1091,7 +1186,59 @@
       });
     }
 
-    _showAddWeighInModal() {
+    _showMergeModal(sourceUserId) {
+      const container = this.shadowRoot.getElementById("modal-container");
+      const { profiles } = this._data;
+      const sourceProf = profiles.find(p => p.id === sourceUserId);
+      const otherProfiles = profiles.filter(p => p.id !== sourceUserId);
+
+      if (otherProfiles.length === 0) {
+        alert("Aucun autre profil disponible pour la fusion.");
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="modal-overlay">
+          <div class="modal-card">
+            <h2 style="margin-top: 0; font-size: 18px; color: #ffffff;">🔀 Fusionner le Profil</h2>
+            <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">
+              Vous vous apprêtez à fusionner <strong>${sourceProf?.name}</strong> dans un autre profil.<br/>
+              Toutes les pesées de cet utilisateur seront transférées vers le profil cible et ${sourceProf?.name} sera supprimé.
+            </p>
+
+            <div class="form-group">
+              <label>Profil cible de destination :</label>
+              <select id="merge-target" class="form-input">
+                ${otherProfiles.map(p => `
+                  <option value="${p.id}">${CATEGORY_ICONS[p.category || 'adult'] || '👤'} ${p.name} (actuel: ${p.reference_weight} kg)</option>
+                `).join("")}
+              </select>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+              <button class="btn" id="modal-cancel">Annuler</button>
+              <button class="btn btn-primary" id="modal-confirm-merge" style="background: linear-gradient(135deg, #f59e0b, #d97706);">Confirmer la Fusion</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      container.querySelector("#modal-cancel").addEventListener("click", () => {
+        container.innerHTML = "";
+      });
+
+      container.querySelector("#modal-confirm-merge").addEventListener("click", async () => {
+        const targetId = container.querySelector("#merge-target").value;
+        await this._hass.fetchWithAuth("/api/domolink_scale/profile_merge", {
+          method: "POST",
+          body: JSON.stringify({ source_id: sourceUserId, target_id: targetId }),
+        });
+        container.innerHTML = "";
+        await this._fetchData();
+      });
+    }
+
+    _showAddWeighInModal(defaultWeight = null) {
       const container = this.shadowRoot.getElementById("modal-container");
       const { profiles } = this._data;
 
@@ -1104,13 +1251,13 @@
               <label>Profil Utilisateur</label>
               <select id="weigh-user" class="form-input">
                 <option value="">Attribution automatique (selon le poids)</option>
-                ${profiles.map(p => `<option value="${p.id}">${p.name}</option>`).join("")}
+                ${profiles.map(p => `<option value="${p.id}">${CATEGORY_ICONS[p.category || 'adult'] || '👤'} ${p.name}</option>`).join("")}
               </select>
             </div>
 
             <div class="form-group">
               <label>Poids Mesuré (kg)</label>
-              <input type="number" id="weigh-weight" class="form-input" placeholder="Ex: 82.5" step="0.05" required />
+              <input type="number" id="weigh-weight" class="form-input" value="${defaultWeight || ''}" placeholder="Ex: 82.5" step="0.05" required />
             </div>
 
             <div class="form-group">
@@ -1156,9 +1303,9 @@
           <div class="modal-card">
             <h2 style="margin-top: 0; font-size: 18px; color: #ffffff;">🔄 Réassigner cette Pesée</h2>
             <div class="form-group">
-              <label>Sélectionner le bon utilisateur :</label>
+              <label>Sélectionner le bon profil :</label>
               <select id="reassign-user" class="form-input">
-                ${profiles.map(p => `<option value="${p.id}">${p.name}</option>`).join("")}
+                ${profiles.map(p => `<option value="${p.id}">${CATEGORY_ICONS[p.category || 'adult'] || '👤'} ${p.name}</option>`).join("")}
                 <option value="guest">Invité</option>
               </select>
             </div>
@@ -1189,7 +1336,7 @@
   customElements.define(PANEL_NAME, DomolinkScalePanel);
 
   console.info(
-    `%c DOMOLINK-SCALE %c v1.0.0 chargé avec succès `,
+    `%c DOMOLINK-SCALE %c v1.1.0 chargé avec succès `,
     "background: #0284c7; color: #fff; font-weight: bold; border-radius: 4px 0 0 4px;",
     "background: #0f172a; color: #38bdf8; border-radius: 0 4px 4px 0;"
   );

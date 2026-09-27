@@ -22,11 +22,11 @@ class DomolinkScaleApiView(HomeAssistantView):
     async def get(self, request: web.Request, action: str) -> web.Response:
         """Handle GET requests."""
         if action == "data":
-            history_limit = int(request.query.get("limit", 500))
+            history_limit = int(request.query.get("limit", 1000))
             user_id = request.query.get("user_id")
 
             history = self.coordinator.history
-            if user_id:
+            if user_id and user_id != "all":
                 history = [h for h in history if h.get("user_id") == user_id]
 
             return self.json({
@@ -34,6 +34,7 @@ class DomolinkScaleApiView(HomeAssistantView):
                 "profiles": list(self.coordinator.profiles.values()),
                 "history": history[-history_limit:],
                 "total_weigh_ins": len(self.coordinator.history),
+                "last_tare": self.coordinator.last_tare,
                 "config": dict(self.coordinator.config_entry.data),
                 "options": dict(self.coordinator.config_entry.options),
             })
@@ -57,6 +58,14 @@ class DomolinkScaleApiView(HomeAssistantView):
             if not user_id:
                 return self.json({"success": False, "error": "ID utilisateur manquant"}, status=400)
             res = await self.coordinator.async_update_profile(user_id, data)
+            return self.json({"success": res})
+
+        elif action == "profile_merge":
+            source_id = data.get("source_id")
+            target_id = data.get("target_id")
+            if not source_id or not target_id:
+                return self.json({"success": False, "error": "IDs de source et cible requis"}, status=400)
+            res = await self.coordinator.async_merge_profiles(source_id, target_id)
             return self.json({"success": res})
 
         elif action == "profile_delete":

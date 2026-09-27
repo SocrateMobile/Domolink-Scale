@@ -35,15 +35,20 @@ async def async_setup_entry(
 
     registered_users = set()
 
+    # Always add the Tare sensor for the scale hub
+    tare_sensor = DomolinkScaleTareSensor(coordinator, entry)
+    async_add_entities([tare_sensor])
+
     @callback
     def _update_entities() -> None:
-        """Dynamically add sensors when profiles are added."""
+        """Dynamically add sensors when new profiles are added or auto-created."""
         new_entities: List[SensorEntity] = []
-        for user_id, profile in coordinator.profiles.items():
+        for user_id in list(coordinator.profiles.keys()):
             if user_id not in registered_users:
                 registered_users.add(user_id)
                 new_entities.extend([
                     DomolinkScaleWeightSensor(coordinator, entry, user_id),
+                    DomolinkScaleTrendSensor(coordinator, entry, user_id),
                     DomolinkScaleMetricSensor(coordinator, entry, user_id, "bmi", "IMC", None, None),
                     DomolinkScaleMetricSensor(coordinator, entry, user_id, "target_weight", "Poids Cible", UnitOfMass.KILOGRAMS, SensorDeviceClass.WEIGHT),
                     DomolinkScaleMetricSensor(coordinator, entry, user_id, "target_delta", "Écart Cible", UnitOfMass.KILOGRAMS, SensorDeviceClass.WEIGHT),
@@ -64,7 +69,9 @@ async def async_setup_entry(
 
 
 class DomolinkScaleBaseSensor(CoordinatorEntity, SensorEntity):
-    """Base sensor for Domolink-Scale."""
+    """Base sensor for Domolink-Scale with clean entity naming."""
+
+    _attr_has_entity_name = True
 
     def __init__(
         self,
@@ -90,11 +97,19 @@ class DomolinkScaleBaseSensor(CoordinatorEntity, SensorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Link sensor to user profile device."""
+        cat = self.profile.get("category", "adult")
+        cat_label = {
+            "child": "Enfant",
+            "cat": "Chat",
+            "dog": "Chien",
+            "luggage": "Bagage",
+        }.get(cat, "Membre du foyer")
+
         return DeviceInfo(
             identifiers={(DOMAIN, f"{self.entry.entry_id}_{self.user_id}")},
             name=f"Domolink Scale - {self.user_name}",
             manufacturer="DomoLink",
-            model="Balance Connectée Universelle",
+            model=f"Profil {cat_label}",
             sw_version=VERSION,
         )
 
@@ -106,6 +121,7 @@ class DomolinkScaleWeightSensor(DomolinkScaleBaseSensor):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_native_unit_of_measurement = UnitOfMass.KILOGRAMS
     _attr_icon = "mdi:scale-bathroom"
+    _attr_name = "Poids"
 
     def __init__(
         self,
@@ -116,7 +132,6 @@ class DomolinkScaleWeightSensor(DomolinkScaleBaseSensor):
         """Initialize the weight sensor."""
         super().__init__(coordinator, entry, user_id)
         self._attr_unique_id = f"{entry.entry_id}_{user_id}_weight"
-        self._attr_name = f"{self.user_name} Poids"
 
     @property
     def native_value(self) -> Optional[float]:
@@ -133,29 +148,52 @@ class DomolinkScaleWeightSensor(DomolinkScaleBaseSensor):
         return {
             "user_id": self.user_id,
             "user_name": self.user_name,
+            "category": self.profile.get("category", "adult"),
             "target_weight": self.profile.get("target_weight"),
             "target_delta": metrics.get("target_delta"),
+            "trend_7d": self.profile.get("trend_7d"),
             "bmi": metrics.get("bmi"),
             "bmi_label": metrics.get("bmi_label"),
             "ideal_weight": metrics.get("ideal_weight"),
             "fat_percentage": metrics.get("fat_percentage"),
             "fat_mass": metrics.get("fat_mass"),
-            "fat_label": metrics.get("fat_label"),
             "muscle_mass": metrics.get("muscle_mass"),
-            "muscle_percentage": metrics.get("muscle_percentage"),
             "water_percentage": metrics.get("water_percentage"),
             "bone_mass": metrics.get("bone_mass"),
             "visceral_fat": metrics.get("visceral_fat"),
-            "visceral_label": metrics.get("visceral_label"),
             "bmr": metrics.get("bmr"),
             "metabolic_age": metrics.get("metabolic_age"),
-            "protein_percentage": metrics.get("protein_percentage"),
             "body_score": metrics.get("body_score"),
             "body_type": metrics.get("body_type"),
             "impedance": metrics.get("impedance"),
             "last_weigh_in": self.profile.get("last_weigh_in"),
             "curve_color": self.profile.get("color"),
         }
+
+
+class DomolinkScaleTrendSensor(DomolinkScaleBaseSensor):
+    """7-Day moving average trend sensor."""
+
+    _attr_device_class = SensorDeviceClass.WEIGHT
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfMass.KILOGRAMS
+    _attr_icon = "mdi:chart-line"
+    _attr_name = "Tendance 7 jours"
+
+    def __init__(
+        self,
+        coordinator: DomolinkScaleCoordinator,
+        entry: ConfigEntry,
+        user_id: str,
+    ) -> None:
+        """Initialize trend sensor."""
+        super().__init__(coordinator, entry, user_id)
+        self._attr_unique_id = f"{entry.entry_id}_{user_id}_trend_7d"
+
+    @property
+    def native_value(self) -> Optional[float]:
+        """Return 7-day smoothed weight."""
+        return self.profile.get("trend_7d")
 
 
 class DomolinkScaleMetricSensor(DomolinkScaleBaseSensor):
@@ -177,7 +215,7 @@ class DomolinkScaleMetricSensor(DomolinkScaleBaseSensor):
         super().__init__(coordinator, entry, user_id)
         self.metric_key = metric_key
         self._attr_unique_id = f"{entry.entry_id}_{user_id}_{metric_key}"
-        self._attr_name = f"{self.user_name} {label}"
+        self._attr_name = label
         self._attr_native_unit_of_measurement = unit
         if device_class:
             self._attr_device_class = device_class
@@ -189,3 +227,54 @@ class DomolinkScaleMetricSensor(DomolinkScaleBaseSensor):
             return self.profile.get("target_weight")
         metrics = self.profile.get("latest_metrics", {})
         return metrics.get(self.metric_key)
+
+
+class DomolinkScaleTareSensor(CoordinatorEntity, SensorEntity):
+    """Global Tare / Baby / Pet / Luggage sensor."""
+
+    _attr_has_entity_name = True
+    _attr_device_class = SensorDeviceClass.WEIGHT
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfMass.KILOGRAMS
+    _attr_icon = "mdi:baby-face-outline"
+    _attr_name = "Dernière Tare (Bébé / Animal / Bagage)"
+
+    def __init__(
+        self,
+        coordinator: DomolinkScaleCoordinator,
+        entry: ConfigEntry,
+    ) -> None:
+        """Initialize tare sensor."""
+        super().__init__(coordinator)
+        self.entry = entry
+        self._attr_unique_id = f"{entry.entry_id}_scale_tare"
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Link to main scale hub device."""
+        return DeviceInfo(
+            identifiers={(DOMAIN, f"{self.entry.entry_id}_hub")},
+            name="Domolink Scale - Hub",
+            manufacturer="DomoLink",
+            model="Balance Connectée Universelle",
+            sw_version=VERSION,
+        )
+
+    @property
+    def native_value(self) -> Optional[float]:
+        """Return last tare weight."""
+        if self.coordinator.last_tare:
+            return self.coordinator.last_tare.get("tare_weight")
+        return None
+
+    @property
+    def extra_state_attributes(self) -> Dict[str, Any]:
+        """Return tare details."""
+        if not self.coordinator.last_tare:
+            return {}
+        return {
+            "total_weight": self.coordinator.last_tare.get("total_weight"),
+            "base_weight": self.coordinator.last_tare.get("base_weight"),
+            "base_user_name": self.coordinator.last_tare.get("base_user_name"),
+            "timestamp": self.coordinator.last_tare.get("timestamp"),
+        }
