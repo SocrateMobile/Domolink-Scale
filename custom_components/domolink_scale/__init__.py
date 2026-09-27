@@ -106,8 +106,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if entry_id and user_id:
             await coordinator.async_reassign_weigh_in(entry_id, user_id)
 
+    async def handle_merge_profiles(call: ServiceCall) -> None:
+        """Service to merge two profiles."""
+        source_id = call.data.get("source_id")
+        target_id = call.data.get("target_id")
+        if source_id and target_id:
+            await coordinator.async_merge_profiles(source_id, target_id)
+
     hass.services.async_register(DOMAIN, "add_profile", handle_add_profile)
     hass.services.async_register(DOMAIN, "update_profile", handle_update_profile)
+    hass.services.async_register(DOMAIN, "merge_profiles", handle_merge_profiles)
     hass.services.async_register(DOMAIN, "delete_profile", handle_delete_profile)
     hass.services.async_register(DOMAIN, "add_weigh_in", handle_add_weigh_in)
     hass.services.async_register(DOMAIN, "reassign_weigh_in", handle_reassign_weigh_in)
