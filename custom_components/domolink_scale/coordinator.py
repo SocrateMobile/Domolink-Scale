@@ -99,6 +99,21 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
             self.history = []
             await self._async_save()
 
+        for u_id, prof in self.profiles.items():
+            if not prof.get("latest_metrics") or "daily_steps_goal" not in prof.get("latest_metrics", {}):
+                weight = prof.get("reference_weight") or 70.0
+                imp = prof.get("last_impedance")
+                prof["latest_metrics"] = calculate_metrics(
+                    weight=weight,
+                    height=prof.get("height", 175.0),
+                    age=prof.get("age", 35),
+                    gender=prof.get("gender", "male"),
+                    impedance=imp,
+                    is_athlete=prof.get("is_athlete", False),
+                    category=prof.get("category", "adult"),
+                    target_weight=prof.get("target_weight"),
+                )
+
         # Listen to mass entity
         mass_entity = self.config_entry.data.get(CONF_MASS_ENTITY) or self.config_entry.options.get(CONF_MASS_ENTITY)
         if mass_entity:
