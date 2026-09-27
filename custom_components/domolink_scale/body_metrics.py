@@ -1,4 +1,4 @@
-"""Body composition, Bioelectrical Impedance Analysis (BIA) and Pet/Child metrics."""
+"""Body composition, Bioelectrical Impedance Analysis (BIA), Pet/Child metrics and Activity goals."""
 
 import math
 from typing import Any, Dict, Optional
@@ -9,6 +9,94 @@ def clamp(val: float, min_val: float, max_val: float) -> float:
     return max(min_val, min(val, max_val))
 
 
+def calculate_activity_goals(
+    weight: float,
+    target_weight: float,
+    height: float,
+    age: int,
+    category: str = "adult",
+) -> Dict[str, Any]:
+    """Calculate daily recommended steps, walking hours, distance and calories based on physiology."""
+    category = (category or "adult").lower()
+
+    # Animal categories
+    if category in ["cat", "chat"]:
+        return {
+            "daily_steps_goal": 3000,
+            "walking_duration_hours": 0.5,
+            "walking_duration_minutes": 30,
+            "walking_distance_km": 1.2,
+            "walking_calories_kcal": 40,
+            "activity_advice": "30 minutes de stimulation et jeux actifs par jour",
+        }
+    elif category in ["dog", "chien"]:
+        duration = 1.0 if weight > 15 else 0.75
+        dist = round(duration * 4.0, 1)
+        return {
+            "daily_steps_goal": 8000,
+            "walking_duration_hours": duration,
+            "walking_duration_minutes": int(duration * 60),
+            "walking_distance_km": dist,
+            "walking_calories_kcal": int(dist * weight * 0.8),
+            "activity_advice": f"{int(duration * 60)} minutes de promenade quotidienne conseillée",
+        }
+    elif category in ["child", "enfant"]:
+        return {
+            "daily_steps_goal": 11500,
+            "walking_duration_hours": 1.5,
+            "walking_duration_minutes": 90,
+            "walking_distance_km": 5.5,
+            "walking_calories_kcal": 220,
+            "activity_advice": "Jeux libres, récréation et activités dynamiques (OMS)",
+        }
+    elif category in ["luggage", "bagage"]:
+        return {}
+
+    # Adult Human activity calculation
+    h_cm = max(120.0, height or 175.0)
+    # Stride length in meters: Height (cm) * 0.415 / 100
+    stride_m = (h_cm * 0.415) / 100.0
+
+    target_w = target_weight if target_weight and target_weight > 20 else weight
+    delta_w = max(0.0, weight - target_w)
+
+    # Base steps: 8,000 for maintenance. If weight loss needed: +350 steps per kg to lose
+    if delta_w > 0.5:
+        surplus_steps = min(4500, int(delta_w * 350))
+        steps = 8000 + surplus_steps
+    else:
+        steps = 8000 if age < 65 else 7000
+
+    # Age adjustment
+    if age > 65:
+        steps = int(steps * 0.85)
+    elif age < 25:
+        steps = int(steps * 1.1)
+
+    steps = int(clamp(steps, 6000, 14000))
+    # Round to nearest 50 steps
+    steps = round(steps / 50.0) * 50
+
+    # Distance in km
+    distance_km = round((steps * stride_m) / 1000.0, 2)
+
+    # Walking duration in hours at 4.8 km/h
+    duration_hours = round(distance_km / 4.8, 2)
+    duration_minutes = int(round(duration_hours * 60))
+
+    # Estimated calories burned (approx 0.75 kcal per kg per km of walking)
+    calories = int(round(distance_km * weight * 0.75))
+
+    return {
+        "daily_steps_goal": steps,
+        "walking_duration_hours": duration_hours,
+        "walking_duration_minutes": duration_minutes,
+        "walking_distance_km": distance_km,
+        "walking_calories_kcal": calories,
+        "stride_length_cm": round(stride_m * 100.0, 1),
+    }
+
+
 def calculate_metrics(
     weight: float,
     height: float,
@@ -17,16 +105,24 @@ def calculate_metrics(
     impedance: Optional[float] = None,
     is_athlete: bool = False,
     category: str = "adult",
+    target_weight: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """Calculate comprehensive metrics based on profile category and biometric parameters."""
+    """Calculate comprehensive metrics based on profile category, biometric parameters and activity goals."""
     if weight <= 0:
         return {}
 
     category = (category or "adult").lower()
+    activity = calculate_activity_goals(
+        weight=weight,
+        target_weight=target_weight or weight,
+        height=height,
+        age=age,
+        category=category,
+    )
 
     # 1. Pets (Chat, Chien) or Luggage (Bagage)
     if category in ["cat", "dog", "chat", "chien", "luggage", "bagage"]:
-        return {
+        res = {
             "weight": weight,
             "category": category,
             "is_pet": True,
@@ -46,14 +142,16 @@ def calculate_metrics(
             "body_score": None,
             "impedance": None,
         }
+        res.update(activity)
+        return res
 
-    # 2. Young children (< 6 years old or < 20 kg)
+    # 2. Young children
     is_young_child = age < 6 or weight < 20.0 or category in ["child", "enfant"]
     h_m = max(0.4, height / 100.0)
     bmi = round(weight / (h_m * h_m), 1)
 
     if is_young_child:
-        return {
+        res = {
             "weight": weight,
             "category": "child",
             "is_child": True,
@@ -73,6 +171,8 @@ def calculate_metrics(
             "body_score": 90,
             "impedance": impedance,
         }
+        res.update(activity)
+        return res
 
     # 3. Adult human calculations
     gender = gender.lower()
@@ -89,7 +189,6 @@ def calculate_metrics(
     else:
         bmi_label = "obese_2"
 
-    # Ideal Weight (Lorentz formula)
     if is_male:
         ideal_weight = round(height - 100 - ((height - 150) / 4.0), 1)
     else:
@@ -97,14 +196,12 @@ def calculate_metrics(
     if ideal_weight <= 20:
         ideal_weight = round(22.0 * (h_m * h_m), 1)
 
-    # BMR (Harris-Benedict / Schofield / Zepp formula)
     if is_male:
         bmr = round(877.8 + (weight * 14.916) - (height * 0.726) - (age * 8.976), 0)
     else:
         bmr = round(864.6 + (weight * 10.2036) - (height * 0.39336) - (age * 6.204), 0)
     bmr = clamp(bmr, 500, 5000)
 
-    # Visceral Fat (Rating 1 - 50)
     if is_male:
         if height < weight * 1.6 + 63.0:
             v_fat = age * 0.15 + ((weight * 305.0) / ((height * 0.0826 * height - height * 0.4) + 48.0) - 2.9)
@@ -118,11 +215,9 @@ def calculate_metrics(
     visceral_fat = round(clamp(v_fat, 1.0, 50.0), 1)
     visceral_label = "normal" if visceral_fat <= 9.0 else ("high" if visceral_fat <= 14.0 else "very_high")
 
-    # Impedance verification
     has_impedance = impedance is not None and 50.0 <= impedance <= 1500.0
 
     if has_impedance:
-        # Lean Body Mass (LBM)
         lbm = (
             (height * 9.058 / 100.0) * (height / 100.0)
             + weight * 0.32
@@ -132,7 +227,6 @@ def calculate_metrics(
         )
         lbm = min(lbm, weight * 0.98)
 
-        # Body Fat Percentage
         if is_male:
             adjust = 0.8
             coeff = 0.98 if weight < 61 else 1.0
@@ -147,26 +241,21 @@ def calculate_metrics(
         raw_fat = (1.0 - ((lbm - adjust) * coeff / weight)) * 100.0
         fat_pct = round(clamp(raw_fat, 5.0, 75.0), 1)
 
-        # Bone Mass
         base = 0.18016894 if is_male else 0.245691014
         bone = (base - (lbm * 0.05158)) * -1
         bone += 0.1 if bone > 2.2 else -0.1
         bone_mass = round(clamp(bone, 0.5, 8.0), 1)
 
-        # Muscle Mass
         muscle = weight - (fat_pct * 0.01 * weight) - bone_mass
         muscle_mass = round(clamp(muscle, 10.0, 120.0), 1)
         muscle_pct = round((muscle_mass / weight) * 100.0, 1)
 
-        # Water Percentage
         raw_water = (100.0 - fat_pct) * 0.7
         raw_water *= 1.02 if raw_water <= 50 else 0.98
         water_pct = round(clamp(raw_water, 35.0, 75.0), 1)
 
-        # Protein Percentage
         protein_pct = round(clamp((muscle_mass / weight) * 100.0 - water_pct, 5.0, 32.0), 1)
 
-        # Metabolic Age
         if is_male:
             metab_age = (height * -0.7471) + (weight * 0.9161) + (age * 0.4184) + (impedance * 0.0517) + 54.2267
         else:
@@ -174,7 +263,6 @@ def calculate_metrics(
         metabolic_age = int(round(clamp(metab_age, 15, 85)))
 
     else:
-        # Fallback estimation without impedance
         sex_val = 1 if is_male else 0
         raw_fat = (1.20 * bmi) + (0.23 * age) - (10.8 * sex_val) - 5.4
         fat_pct = round(clamp(raw_fat, 5.0, 65.0), 1)
@@ -188,13 +276,11 @@ def calculate_metrics(
     fat_mass = round((fat_pct / 100.0) * weight, 1)
     water_mass = round((water_pct / 100.0) * weight, 1)
 
-    # Fat label
     if is_male:
         fat_label = "very_low" if fat_pct < 10.0 else ("normal" if fat_pct < 20.0 else ("elevated" if fat_pct < 25.0 else "high"))
     else:
         fat_label = "very_low" if fat_pct < 18.0 else ("normal" if fat_pct < 28.0 else ("elevated" if fat_pct < 35.0 else "high"))
 
-    # Body Type classification
     fat_level = 0 if fat_label in ["elevated", "high"] else (2 if fat_label == "very_low" else 1)
     muscle_level = 2 if muscle_pct >= (45.0 if is_male else 38.0) else (0 if muscle_pct < (38.0 if is_male else 30.0) else 1)
     type_idx = muscle_level + (fat_level * 3)
@@ -205,7 +291,6 @@ def calculate_metrics(
     ]
     body_type = types_list[type_idx] if 0 <= type_idx < len(types_list) else "balanced"
 
-    # Body Score (0 - 100)
     score = 100.0
     bmi_diff = abs(bmi - 22.0)
     score -= min(35.0, bmi_diff * 3.0)
@@ -221,7 +306,7 @@ def calculate_metrics(
 
     body_score = int(round(clamp(score, 20.0, 100.0)))
 
-    return {
+    res = {
         "weight": weight,
         "category": "adult",
         "bmi": bmi,
@@ -244,3 +329,5 @@ def calculate_metrics(
         "body_score": body_score,
         "impedance": impedance if has_impedance else None,
     }
+    res.update(activity)
+    return res
