@@ -4,7 +4,7 @@ Composant Home Assistant et panneau tactile universel dédié au suivi du poids,
 
 Fait partie de la suite **DomoLink**.
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.1-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
