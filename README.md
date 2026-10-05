@@ -8,6 +8,8 @@ Fait partie de la suite **DomoLink**.
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
+[![Buy Me A Coffee](https://img.buymeacoffee.com/button-api/?text=Buy+me+a+coffee&emoji=☕&slug=Socrate&button_colour=FFDD00&font_colour=000000&font_family=Poppins&outline_colour=000000&coffee_colour=ffffff)](https://www.buymeacoffee.com/Socrate)
+
 ---
 
 ## ✨ Fonctionnalités Principales
