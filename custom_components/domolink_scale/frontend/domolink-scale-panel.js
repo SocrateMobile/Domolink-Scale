@@ -150,6 +150,7 @@
             align-items: center;
             justify-content: center;
             font-size: 22px;
+            object-fit: cover;
             box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
           }
           .brand-text h1 {
@@ -540,7 +541,7 @@
         <!-- Header -->
         <div class="header">
           <div class="brand">
-            <div class="brand-icon">⚖️</div>
+            <img class="brand-icon" src="/domolink_scale_frontend/icon.png" alt="Domolink-Scale" onerror="this.onerror=null; this.outerHTML='<div class=\\'brand-icon\\'>⚖️</div>';" />
             <div class="brand-text">
               <h1>Domolink-Scale</h1>
               <p>Suivi Multi-Marques • Attribution Biométrique & Tare</p>
