@@ -1,12 +1,14 @@
 {
-  "domain": "domolink_scale",
-  "name": "Domolink-Scale",
-  "codeowners": ["@SocrateMobile"],
+  "codeowners": [
+    "@SocrateMobile"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/SocrateMobile/Domolink-Scale",
+  "domain": "domolink_scale",
   "integration_type": "hub",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/SocrateMobile/Domolink-Scale/issues",
+  "name": "Domolink-Scale",
   "requirements": [],
-  "version": "1.2.1"
+  "version": "1.2.2"
 }
