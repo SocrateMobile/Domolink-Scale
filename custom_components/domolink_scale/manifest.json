@@ -5,10 +5,14 @@
     "@SocrateMobile"
   ],
   "config_flow": true,
+  "dependencies": [
+    "frontend",
+    "http"
+  ],
   "documentation": "https://github.com/SocrateMobile/Domolink-Scale",
   "integration_type": "hub",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/SocrateMobile/Domolink-Scale/issues",
   "requirements": [],
-  "version": "1.2.3"
+  "version": "1.2.4"
 }
