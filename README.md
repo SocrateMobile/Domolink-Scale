@@ -4,7 +4,7 @@ Composant Home Assistant et panneau tactile universel dédié au suivi du poids,
 
 Fait partie de la suite **DomoLink**.
 
-![Version](https://img.shields.io/badge/version-1.2.2-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2.5-blue.svg)
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.1%2B-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Socrate-FFDD00?logo=buy-me-a-coffee&logoColor=000000)](https://buymeacoffee.com/Socrate)

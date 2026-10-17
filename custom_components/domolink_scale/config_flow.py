@@ -122,9 +122,11 @@ class DomolinkScaleConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class DomolinkScaleOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options for Domolink-Scale."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    def __init__(
+        self, config_entry: Optional[config_entries.ConfigEntry] = None
+    ) -> None:
         """Initialize options flow."""
-        self.config_entry = config_entry
+        self._config_entry = config_entry
 
     async def async_step_init(
         self, user_input: Optional[Dict[str, Any]] = None
@@ -133,7 +135,10 @@ class DomolinkScaleOptionsFlowHandler(config_entries.OptionsFlow):
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 
-        current = {**self.config_entry.data, **self.config_entry.options}
+        entry = getattr(self, "_config_entry", None) or getattr(
+            self, "config_entry", None
+        )
+        current = {**(entry.data if entry else {}), **(entry.options if entry else {})}
 
         schema = vol.Schema({
             vol.Required(
@@ -162,6 +167,14 @@ class DomolinkScaleOptionsFlowHandler(config_entries.OptionsFlow):
             vol.Optional(
                 CONF_WATER_ENTITY,
                 description={"suggested_value": current.get(CONF_WATER_ENTITY)},
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            vol.Optional(
+                CONF_BONE_MASS_ENTITY,
+                description={"suggested_value": current.get(CONF_BONE_MASS_ENTITY)},
+            ): EntitySelector(EntitySelectorConfig(domain="sensor")),
+            vol.Optional(
+                CONF_VISCERAL_FAT_ENTITY,
+                description={"suggested_value": current.get(CONF_VISCERAL_FAT_ENTITY)},
             ): EntitySelector(EntitySelectorConfig(domain="sensor")),
             vol.Optional(
                 CONF_BATTERY_ENTITY,
