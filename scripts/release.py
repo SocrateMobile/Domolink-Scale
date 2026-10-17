@@ -133,7 +133,7 @@ def main() -> None:
 
     update_version_files(new_ver)
 
-    run_cmd(["git", "add", MANIFEST_PATH, README_PATH])
+    run_cmd(["git", "add", "."])
     run_cmd(["git", "commit", "-m", f"chore: release v{new_ver}"])
     run_cmd(["git", "push", "origin", "main"])
 

@@ -102,10 +102,11 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
         for u_id, prof in self.profiles.items():
             weight = prof.get("reference_weight") or 70.0
             imp = prof.get("last_impedance")
+            prof_age = _calculate_age(prof.get("birthdate", "1985-01-01"))
             prof["latest_metrics"] = calculate_metrics(
                 weight=weight,
                 height=prof.get("height", 175.0),
-                age=prof.get("age", 35),
+                age=prof_age,
                 gender=prof.get("gender", "male"),
                 impedance=imp,
                 is_athlete=prof.get("is_athlete", False),
