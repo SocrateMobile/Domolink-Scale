@@ -46,7 +46,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # 1. Register static frontend path
     frontend_dir = os.path.join(os.path.dirname(__file__), "frontend")
-    if os.path.exists(frontend_dir):
+    if True:
         if hasattr(hass.http, "async_register_static_paths"):
             from homeassistant.components.http import StaticPathConfig
             await hass.http.async_register_static_paths([
@@ -113,12 +113,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if source_id and target_id:
             await coordinator.async_merge_profiles(source_id, target_id)
 
-    hass.services.async_register(DOMAIN, "add_profile", handle_add_profile)
-    hass.services.async_register(DOMAIN, "update_profile", handle_update_profile)
-    hass.services.async_register(DOMAIN, "merge_profiles", handle_merge_profiles)
-    hass.services.async_register(DOMAIN, "delete_profile", handle_delete_profile)
-    hass.services.async_register(DOMAIN, "add_weigh_in", handle_add_weigh_in)
-    hass.services.async_register(DOMAIN, "reassign_weigh_in", handle_reassign_weigh_in)
+    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "add_profile", handle_add_profile)
+    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "update_profile", handle_update_profile)
+    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "merge_profiles", handle_merge_profiles)
+    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "delete_profile", handle_delete_profile)
+    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "add_weigh_in", handle_add_weigh_in)
+    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "reassign_weigh_in", handle_reassign_weigh_in)
 
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     _LOGGER.info("Domolink-Scale v%s initialisé avec succès.", VERSION)
