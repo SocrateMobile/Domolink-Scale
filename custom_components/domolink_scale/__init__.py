@@ -1,3 +1,4 @@
+from homeassistant.helpers.service import async_register_admin_service
 """Initialization file for Domolink-Scale integration."""
 
 import logging
@@ -113,12 +114,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if source_id and target_id:
             await coordinator.async_merge_profiles(source_id, target_id)
 
-    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "add_profile", handle_add_profile)
-    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "update_profile", handle_update_profile)
-    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "merge_profiles", handle_merge_profiles)
-    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "delete_profile", handle_delete_profile)
-    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "add_weigh_in", handle_add_weigh_in)
-    hass.helpers.service.async_register_admin_service(hass, DOMAIN, "reassign_weigh_in", handle_reassign_weigh_in)
+    async_register_admin_service(hass, DOMAIN, "add_profile", handle_add_profile)
+    async_register_admin_service(hass, DOMAIN, "update_profile", handle_update_profile)
+    async_register_admin_service(hass, DOMAIN, "merge_profiles", handle_merge_profiles)
+    async_register_admin_service(hass, DOMAIN, "delete_profile", handle_delete_profile)
+    async_register_admin_service(hass, DOMAIN, "add_weigh_in", handle_add_weigh_in)
+    async_register_admin_service(hass, DOMAIN, "reassign_weigh_in", handle_reassign_weigh_in)
 
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
     _LOGGER.info("Domolink-Scale v%s initialisé avec succès.", VERSION)
