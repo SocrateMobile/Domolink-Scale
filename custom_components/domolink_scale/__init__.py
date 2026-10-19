@@ -144,7 +144,7 @@ def _async_register_panel(hass: HomeAssistant) -> None:
                     "module_url": panel_url,
                 }
             },
-            require_admin=False,
+            require_admin=True,
             update=True,
         )
         _LOGGER.info("Domolink-Scale: Panneau latéral enregistré avec succès.")
