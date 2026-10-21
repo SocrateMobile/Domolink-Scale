@@ -27,6 +27,16 @@
     luggage: "Bagage",
   };
 
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   class DomolinkScalePanel extends HTMLElement {
     constructor() {
       super();
@@ -36,6 +46,10 @@
       this._selectedUserId = "all";
       this._timeFilter = "30d";
       this._showTrend = true;
+    }
+
+    _escapeHtml(str) {
+      return escapeHtml(str);
     }
 
     set hass(hass) {
@@ -561,7 +575,7 @@
               <div>
                 <strong>Dernière Tare détectée :</strong>
                 <span class="tare-weight-badge">+${last_tare.tare_weight} kg</span>
-                <span style="color: #94a3b8; font-size: 12px;">(Pèse-personne avec ${last_tare.base_user_name || 'utilisateur'} • ${this._formatDate(last_tare.timestamp)})</span>
+                <span style="color: #94a3b8; font-size: 12px;">(Pèse-personne avec ${escapeHtml(last_tare.base_user_name || 'utilisateur')} • ${this._formatDate(last_tare.timestamp)})</span>
               </div>
             </div>
             <button class="btn" id="btn-assign-tare" style="font-size: 12px; padding: 4px 10px;">Attribuer</button>
@@ -582,10 +596,10 @@
               <span>👥 Tous les profils</span>
             </div>
             ${profiles.map(p => `
-              <div class="user-pill ${this._selectedUserId === p.id ? "active" : ""}" data-user="${p.id}">
+              <div class="user-pill ${this._selectedUserId === p.id ? "active" : ""}" data-user="${escapeHtml(p.id)}">
                 <span style="font-size: 14px;">${CATEGORY_ICONS[p.category || 'adult'] || '👤'}</span>
-                <div class="user-color-dot" style="background: ${p.color || '#0284c7'};"></div>
-                <span>${p.name}</span>
+                <div class="user-color-dot" style="background: ${escapeHtml(p.color || '#0284c7')};"></div>
+                <span>${escapeHtml(p.name)}</span>
               </div>
             `).join("")}
           </div>
@@ -636,7 +650,7 @@
             <div class="card-header">
               <div class="card-title">
                 ${CATEGORY_ICONS[activeProfile?.category || 'adult'] || '👤'} 
-                ${activeProfile?.name || 'Profil'} • Composition
+                ${escapeHtml(activeProfile?.name || 'Profil')} • Composition
               </div>
               <span style="font-size: 12px; color: #94a3b8;">${this._formatDate(latestItem?.timestamp)}</span>
             </div>
@@ -857,7 +871,7 @@
             <line x1="${padding.left}" y1="${targetY}" x2="${width - padding.right}" y2="${targetY}" 
                   stroke="${uColor}" stroke-dasharray="4,4" stroke-width="1.5" opacity="0.6" />
             <text x="${width - padding.right}" y="${targetY - 6}" fill="${uColor}" font-size="10" text-anchor="end">
-              Cible ${u.name}: ${u.target_weight} kg
+              Cible ${escapeHtml(u.name)}: ${u.target_weight} kg
             </text>
           `;
         }
@@ -884,7 +898,7 @@
         points.forEach(p => {
           linesSvg += `
             <circle cx="${p.x}" cy="${p.y}" r="5" fill="#0f172a" stroke="${uColor}" stroke-width="2.5" class="chart-dot">
-              <title>${p.data.user_name}: ${p.data.weight} kg (${this._formatDate(p.data.timestamp)})</title>
+              <title>${escapeHtml(p.data.user_name)}: ${p.data.weight} kg (${this._formatDate(p.data.timestamp)})</title>
             </circle>
           `;
         });
@@ -924,15 +938,15 @@
                 <tr>
                   <td>${this._formatDate(item.timestamp)}</td>
                   <td>
-                    <span style="font-weight: 600; color: #f8fafc;">${item.user_name || 'Invité'}</span>
+                    <span style="font-weight: 600; color: #f8fafc;">${escapeHtml(item.user_name || 'Invité')}</span>
                   </td>
                   <td style="font-weight: 700; color: #38bdf8;">${item.weight} kg</td>
                   <td>${item.metrics?.bmi || '-'}</td>
                   <td>${item.metrics?.fat_percentage ? item.metrics.fat_percentage + '%' : '-'}</td>
                   <td>${item.impedance ? item.impedance + ' Ω' : '-'}</td>
                   <td>
-                    <button class="btn btn-reassign" data-id="${item.id}" style="padding: 4px 8px; font-size: 11px;">🔄 Réassigner</button>
-                    <button class="btn btn-delete-weigh-in" data-id="${item.id}" style="padding: 4px 8px; font-size: 11px; color: #f87171;">🗑️</button>
+                    <button class="btn btn-reassign" data-id="${escapeHtml(item.id)}" style="padding: 4px 8px; font-size: 11px;">🔄 Réassigner</button>
+                    <button class="btn btn-delete-weigh-in" data-id="${escapeHtml(item.id)}" style="padding: 4px 8px; font-size: 11px; color: #f87171;">🗑️</button>
                   </td>
                 </tr>
               `).join("")}
@@ -959,18 +973,18 @@
                 <div style="background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
                   <div style="display: flex; align-items: center; gap: 14px;">
                     <div style="font-size: 24px;">${CATEGORY_ICONS[p.category || 'adult'] || '👤'}</div>
-                    <div style="width: 14px; height: 14px; border-radius: 50%; background: ${p.color || '#0284c7'}; border: 2px solid #ffffff;"></div>
+                    <div style="width: 14px; height: 14px; border-radius: 50%; background: ${escapeHtml(p.color || '#0284c7')}; border: 2px solid #ffffff;"></div>
                     <div>
-                      <div style="font-size: 15px; font-weight: 700; color: #ffffff;">${p.name} <span style="font-size: 11px; color: #94a3b8;">(${CATEGORY_LABELS[p.category || 'adult'] || 'Adulte'})</span></div>
+                      <div style="font-size: 15px; font-weight: 700; color: #ffffff;">${escapeHtml(p.name)} <span style="font-size: 11px; color: #94a3b8;">(${CATEGORY_LABELS[p.category || 'adult'] || 'Adulte'})</span></div>
                       <div style="font-size: 12px; color: #94a3b8;">
                         ${p.height ? p.height + ' cm • ' : ''}Ref: ${p.reference_weight} kg • Cible: ${p.target_weight} kg (±${p.tolerance} kg)
                       </div>
                     </div>
                   </div>
                   <div style="display: flex; gap: 6px;">
-                    <button class="btn btn-merge-profile" data-id="${p.id}" style="padding: 6px 10px; font-size: 12px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">🔀 Fusionner</button>
-                    <button class="btn btn-edit-profile" data-id="${p.id}" style="padding: 6px 10px; font-size: 12px;">✏️ Modifier</button>
-                    <button class="btn btn-delete-profile" data-id="${p.id}" style="padding: 6px 10px; font-size: 12px; color: #f87171;">🗑️</button>
+                    <button class="btn btn-merge-profile" data-id="${escapeHtml(p.id)}" style="padding: 6px 10px; font-size: 12px; background: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);">🔀 Fusionner</button>
+                    <button class="btn btn-edit-profile" data-id="${escapeHtml(p.id)}" style="padding: 6px 10px; font-size: 12px;">✏️ Modifier</button>
+                    <button class="btn btn-delete-profile" data-id="${escapeHtml(p.id)}" style="padding: 6px 10px; font-size: 12px; color: #f87171;">🗑️</button>
                   </div>
                 </div>
               `).join("")}
@@ -1128,7 +1142,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
               <div class="form-group">
                 <label>Nom ou Prénom</label>
-                <input type="text" id="prof-name" class="form-input" value="${p.name}" placeholder="Ex: Jean-Frédéric, Minou..." required />
+                <input type="text" id="prof-name" class="form-input" value="${escapeHtml(p.name)}" placeholder="Ex: Alexandre, Minou..." required />
               </div>
 
               <div class="form-group">
@@ -1255,15 +1269,15 @@
           <div class="modal-card">
             <h2 style="margin-top: 0; font-size: 18px; color: #ffffff;">🔀 Fusionner le Profil</h2>
             <p style="font-size: 13px; color: #cbd5e1; line-height: 1.5;">
-              Vous vous apprêtez à fusionner <strong>${sourceProf?.name}</strong> dans un autre profil.<br/>
-              Toutes les pesées de cet utilisateur seront transférées vers le profil cible et ${sourceProf?.name} sera supprimé.
+              Vous vous apprêtez à fusionner <strong>${escapeHtml(sourceProf?.name)}</strong> dans un autre profil.<br/>
+              Toutes les pesées de cet utilisateur seront transférées vers le profil cible et ${escapeHtml(sourceProf?.name)} sera supprimé.
             </p>
 
             <div class="form-group">
               <label>Profil cible de destination :</label>
               <select id="merge-target" class="form-input">
                 ${otherProfiles.map(p => `
-                  <option value="${p.id}">${CATEGORY_ICONS[p.category || 'adult'] || '👤'} ${p.name} (actuel: ${p.reference_weight} kg)</option>
+                  <option value="${escapeHtml(p.id)}">${CATEGORY_ICONS[p.category || 'adult'] || '👤'} ${escapeHtml(p.name)} (actuel: ${p.reference_weight} kg)</option>
                 `).join("")}
               </select>
             </div>
@@ -1304,7 +1318,7 @@
               <label>Profil Utilisateur</label>
               <select id="weigh-user" class="form-input">
                 <option value="">Attribution automatique (selon le poids)</option>
-                ${profiles.map(p => `<option value="${p.id}">${CATEGORY_ICONS[p.category || 'adult'] || '👤'} ${p.name}</option>`).join("")}
+                ${profiles.map(p => `<option value="${escapeHtml(p.id)}">${CATEGORY_ICONS[p.category || 'adult'] || '👤'} ${escapeHtml(p.name)}</option>`).join("")}
               </select>
             </div>
 
@@ -1358,7 +1372,7 @@
             <div class="form-group">
               <label>Sélectionner le bon profil :</label>
               <select id="reassign-user" class="form-input">
-                ${profiles.map(p => `<option value="${p.id}">${CATEGORY_ICONS[p.category || 'adult'] || '👤'} ${p.name}</option>`).join("")}
+                ${profiles.map(p => `<option value="${escapeHtml(p.id)}">${CATEGORY_ICONS[p.category || 'adult'] || '👤'} ${escapeHtml(p.name)}</option>`).join("")}
                 <option value="guest">Invité</option>
               </select>
             </div>

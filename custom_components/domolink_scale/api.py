@@ -21,6 +21,10 @@ class DomolinkScaleApiView(HomeAssistantView):
 
     async def get(self, request: web.Request, action: str) -> web.Response:
         """Handle GET requests."""
+        hass_user = request.get("hass_user")
+        if not hass_user or not hass_user.is_admin:
+            return self.json({"success": False, "error": "Accès réservé aux administrateurs"}, status=403)
+
         if action == "data":
             history_limit = int(request.query.get("limit", 1000))
             user_id = request.query.get("user_id")
@@ -43,6 +47,10 @@ class DomolinkScaleApiView(HomeAssistantView):
 
     async def post(self, request: web.Request, action: str) -> web.Response:
         """Handle POST requests."""
+        hass_user = request.get("hass_user")
+        if not hass_user or not hass_user.is_admin:
+            return self.json({"success": False, "error": "Accès réservé aux administrateurs"}, status=403)
+
         try:
             data = await request.json()
         except Exception:

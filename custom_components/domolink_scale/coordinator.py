@@ -77,25 +77,7 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
             self.history = stored.get("history", [])
             self.last_tare = stored.get("last_tare")
         else:
-            default_id = "user_1"
-            self.profiles = {
-                default_id: {
-                    "id": default_id,
-                    "name": "Jean-Frédéric",
-                    "category": "adult",
-                    "gender": "male",
-                    "birthdate": "1980-01-01",
-                    "height": 180,
-                    "reference_weight": 92.35,
-                    "target_weight": 85.0,
-                    "tolerance": 5.0,
-                    "color": "#0284c7",
-                    "is_athlete": False,
-                    "last_impedance": 683.0,
-                    "trend_7d": 92.35,
-                    "latest_metrics": {},
-                }
-            }
+            self.profiles = {}
             self.history = []
             await self._async_save()
 
