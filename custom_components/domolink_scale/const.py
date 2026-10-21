@@ -7,9 +7,9 @@ NAME = "Domolink-Scale"
 _MANIFEST_PATH = os.path.join(os.path.dirname(__file__), "manifest.json")
 try:
     with open(_MANIFEST_PATH, "r", encoding="utf-8") as _f:
-        VERSION = json.load(_f).get("version", "1.2.9")
+        VERSION = json.load(_f).get("version", "1.2.10")
 except Exception:
-    VERSION = "1.2.9"
+    VERSION = "1.2.10"
 
 # Panel Constants
 PANEL_TITLE = "Domolink Scale"

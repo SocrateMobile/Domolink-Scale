@@ -6,7 +6,7 @@ add_profile:
       name: Nom
       description: Nom complet ou prénom
       required: true
-      example: "Jean-Frédéric"
+      example: "Alexandre"
       selector:
         text:
     category:
@@ -58,7 +58,7 @@ add_profile:
       name: Poids actuel / référence
       description: En kg
       required: true
-      example: 92.35
+      example: 75.0
       selector:
         number:
           min: 2
