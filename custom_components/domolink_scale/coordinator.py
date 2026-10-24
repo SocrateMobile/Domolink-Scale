@@ -3,6 +3,7 @@
 import asyncio
 from datetime import datetime, timedelta, timezone
 import logging
+import re
 import uuid
 from typing import Any, Dict, List, Optional
 
@@ -41,6 +42,25 @@ COLOR_PALETTE = [
     "#0284c7", "#10b981", "#f59e0b", "#ec4899",
     "#8b5cf6", "#06b6d4", "#f97316", "#14b8a6", "#6366f1"
 ]
+
+_HEX_COLOR_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+def _validate_color(val: Any, fallback: str = "#0284c7") -> str:
+    """Validate hex color (#rrggbb)."""
+    if isinstance(val, str) and _HEX_COLOR_RE.match(val.strip()):
+        return val.strip()
+    return fallback
+
+
+def _validate_birthdate(val: Any, fallback: str = "1990-01-01") -> str:
+    """Validate YYYY-MM-DD birthdate string."""
+    if isinstance(val, str):
+        try:
+            return datetime.strptime(val.strip(), "%Y-%m-%d").strftime("%Y-%m-%d")
+        except ValueError:
+            pass
+    return fallback
 
 
 def _calculate_age(birthdate_str: str) -> int:
@@ -196,7 +216,12 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
         now_dt = dt_util.now()
 
         # 1. Read Impedance & Cardio sensors
-        impedance = manual_impedance
+        impedance = None
+        if manual_impedance not in (None, ""):
+            try:
+                impedance = float(manual_impedance)
+            except (ValueError, TypeError):
+                impedance = None
         if impedance is None:
             imp_entity = self.config_entry.data.get(CONF_IMPEDANCE_ENTITY) or self.config_entry.options.get(CONF_IMPEDANCE_ENTITY)
             if imp_entity:
@@ -358,20 +383,21 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
 
     async def async_add_profile(self, profile_data: Dict[str, Any]) -> str:
         """Add a new user/pet/child profile."""
-        name = profile_data.get("name", "Nouvel Utilisateur").strip()
+        name = str(profile_data.get("name", "Nouvel Utilisateur")).strip()
         user_id = profile_data.get("id") or f"user_{uuid.uuid4().hex[:8]}"
+        default_color = COLOR_PALETTE[len(self.profiles) % len(COLOR_PALETTE)]
 
         new_profile = {
             "id": user_id,
             "name": name,
             "category": profile_data.get("category", "adult"),
             "gender": profile_data.get("gender", "male"),
-            "birthdate": profile_data.get("birthdate", "1990-01-01"),
+            "birthdate": _validate_birthdate(profile_data.get("birthdate"), "1990-01-01"),
             "height": float(profile_data.get("height", 175)),
             "reference_weight": float(profile_data.get("reference_weight", profile_data.get("target_weight", 70.0))),
             "target_weight": float(profile_data.get("target_weight", 65.0)),
             "tolerance": float(profile_data.get("tolerance", 5.0)),
-            "color": profile_data.get("color", COLOR_PALETTE[len(self.profiles) % len(COLOR_PALETTE)]),
+            "color": _validate_color(profile_data.get("color"), default_color),
             "is_athlete": bool(profile_data.get("is_athlete", False)),
             "last_impedance": None,
             "trend_7d": float(profile_data.get("reference_weight", 70.0)),
@@ -389,9 +415,13 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
             return False
 
         prof = self.profiles[user_id]
-        for field in ["name", "category", "gender", "birthdate", "color", "is_athlete"]:
+        for field in ["name", "category", "gender", "is_athlete"]:
             if field in updates:
                 prof[field] = updates[field]
+        if "birthdate" in updates:
+            prof["birthdate"] = _validate_birthdate(updates["birthdate"], prof.get("birthdate", "1990-01-01"))
+        if "color" in updates:
+            prof["color"] = _validate_color(updates["color"], prof.get("color", "#0284c7"))
 
         for num_field in ["height", "reference_weight", "target_weight", "tolerance"]:
             if num_field in updates and updates[num_field] is not None:
