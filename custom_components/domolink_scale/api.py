@@ -88,11 +88,18 @@ class DomolinkScaleApiView(HomeAssistantView):
             weight = float(data.get("weight", 0))
             if weight <= 0:
                 return self.json({"success": False, "error": "Poids invalide"}, status=400)
+            raw_imp = data.get("impedance")
+            parsed_imp = None
+            if raw_imp not in (None, ""):
+                try:
+                    parsed_imp = float(raw_imp)
+                except (ValueError, TypeError):
+                    return self.json({"success": False, "error": "Impédance invalide"}, status=400)
             item = await self.coordinator.async_process_weigh_in(
                 weight=weight,
                 timestamp=data.get("timestamp"),
                 manual_user_id=data.get("user_id"),
-                manual_impedance=data.get("impedance"),
+                manual_impedance=parsed_imp,
             )
             return self.json({"success": True, "entry": item})
 

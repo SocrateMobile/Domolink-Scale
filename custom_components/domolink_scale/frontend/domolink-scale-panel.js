@@ -861,7 +861,7 @@
 
       let linesSvg = "";
       usersToDisplay.forEach(u => {
-        const uColor = u.color || "#0284c7";
+        const uColor = escapeHtml(u.color || "#0284c7");
         const uHistory = filteredHistory.filter(h => h.user_id === u.id);
 
         // Draw target line
@@ -940,10 +940,10 @@
                   <td>
                     <span style="font-weight: 600; color: #f8fafc;">${escapeHtml(item.user_name || 'Invité')}</span>
                   </td>
-                  <td style="font-weight: 700; color: #38bdf8;">${item.weight} kg</td>
-                  <td>${item.metrics?.bmi || '-'}</td>
-                  <td>${item.metrics?.fat_percentage ? item.metrics.fat_percentage + '%' : '-'}</td>
-                  <td>${item.impedance ? item.impedance + ' Ω' : '-'}</td>
+                  <td style="font-weight: 700; color: #38bdf8;">${escapeHtml(item.weight)} kg</td>
+                  <td>${escapeHtml(item.metrics?.bmi || '-')}</td>
+                  <td>${item.metrics?.fat_percentage ? escapeHtml(item.metrics.fat_percentage) + '%' : '-'}</td>
+                  <td>${item.impedance ? escapeHtml(item.impedance) + ' Ω' : '-'}</td>
                   <td>
                     <button class="btn btn-reassign" data-id="${escapeHtml(item.id)}" style="padding: 4px 8px; font-size: 11px;">🔄 Réassigner</button>
                     <button class="btn btn-delete-weigh-in" data-id="${escapeHtml(item.id)}" style="padding: 4px 8px; font-size: 11px; color: #f87171;">🗑️</button>
@@ -1168,39 +1168,39 @@
 
               <div class="form-group">
                 <label>Date de Naissance</label>
-                <input type="date" id="prof-birthdate" class="form-input" value="${p.birthdate}" />
+                <input type="date" id="prof-birthdate" class="form-input" value="${escapeHtml(p.birthdate || '1985-01-01')}" />
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
               <div class="form-group">
                 <label>Taille (cm)</label>
-                <input type="number" id="prof-height" class="form-input" value="${p.height}" step="1" />
+                <input type="number" id="prof-height" class="form-input" value="${escapeHtml(p.height)}" step="1" />
               </div>
 
               <div class="form-group">
                 <label>Poids Référence (kg)</label>
-                <input type="number" id="prof-ref-weight" class="form-input" value="${p.reference_weight}" step="0.1" />
+                <input type="number" id="prof-ref-weight" class="form-input" value="${escapeHtml(p.reference_weight)}" step="0.1" />
               </div>
             </div>
 
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
               <div class="form-group">
                 <label>Poids Cible (kg)</label>
-                <input type="number" id="prof-target-weight" class="form-input" value="${p.target_weight}" step="0.1" />
+                <input type="number" id="prof-target-weight" class="form-input" value="${escapeHtml(p.target_weight)}" step="0.1" />
               </div>
 
               <div class="form-group">
                 <label>Tolérance Détection (± kg)</label>
-                <input type="number" id="prof-tolerance" class="form-input" value="${p.tolerance || 5.0}" step="0.5" />
+                <input type="number" id="prof-tolerance" class="form-input" value="${escapeHtml(p.tolerance || 5.0)}" step="0.5" />
               </div>
             </div>
 
             <div class="form-group">
               <label>Couleur de la Courbe</label>
               <div class="color-picker-wrapper">
-                <input type="color" id="prof-color" value="${p.color || '#0284c7'}" />
-                <span style="font-size: 13px; color: #cbd5e1;" id="color-hex-label">${p.color || '#0284c7'}</span>
+                <input type="color" id="prof-color" value="${escapeHtml(p.color || '#0284c7')}" />
+                <span style="font-size: 13px; color: #cbd5e1;" id="color-hex-label">${escapeHtml(p.color || '#0284c7')}</span>
               </div>
             </div>
 
