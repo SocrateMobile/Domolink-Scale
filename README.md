@@ -1,5 +1,10 @@
 # Domolink-Scale ⚖️
 
+[![Documentation Officielle](https://img.shields.io/badge/Documentation-socratemobile.fr-06b6d4.svg?logo=googlechrome&logoColor=white)](https://socratemobile.fr/integration.html?id=domolink-scale)
+
+> 🌐 **Site officiel & Documentation complète** : Retrouvez le guide d'installation pas à pas, les entités supportées et les exemples d'automatisations sur [socratemobile.fr](https://socratemobile.fr/integration.html?id=domolink-scale).
+
+
 Composant Home Assistant et panneau tactile universel dédié au suivi du poids, de la composition corporelle BIA et de l'activité physique quotidienne multi-marques.
 
 Fait partie de la suite **DomoLink**.
