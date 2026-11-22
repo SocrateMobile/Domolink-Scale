@@ -153,10 +153,17 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
         seven_days_ago = now - timedelta(days=7)
 
         for u_id, prof in self.profiles.items():
-            user_weights = [
-                h["weight"] for h in self.history
-                if h.get("user_id") == u_id and dt_util.parse_datetime(h["timestamp"]) >= seven_days_ago
-            ]
+            user_weights = []
+            for h in self.history:
+                if h.get("user_id") != u_id:
+                    continue
+                parsed_ts = dt_util.parse_datetime(str(h.get("timestamp") or ""))
+                if parsed_ts is None:
+                    continue
+                if parsed_ts.tzinfo is None:
+                    parsed_ts = dt_util.as_utc(parsed_ts)
+                if parsed_ts >= seven_days_ago:
+                    user_weights.append(h["weight"])
             if user_weights:
                 prof["trend_7d"] = round(sum(user_weights) / len(user_weights), 2)
             else:
@@ -248,7 +255,9 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
         recent_adult_entry = None
         if self.history:
             last_entry = self.history[-1]
-            last_ts = dt_util.parse_datetime(last_entry["timestamp"])
+            last_ts = dt_util.parse_datetime(str(last_entry.get("timestamp") or ""))
+            if last_ts is not None and last_ts.tzinfo is None:
+                last_ts = dt_util.as_utc(last_ts)
             if last_ts and (now_dt - last_ts).total_seconds() <= 180:
                 user_cat = self.profiles.get(last_entry["user_id"], {}).get("category", "adult")
                 if user_cat == "adult" and weight > (last_entry["weight"] + 0.8) and weight <= (last_entry["weight"] + 40.0):
@@ -327,6 +336,8 @@ class DomolinkScaleCoordinator(DataUpdateCoordinator):
                     new_name, matched_user_id
                 )
 
+        if matched_user_id not in self.profiles:
+            raise ValueError(f"Profil utilisateur introuvable : {matched_user_id}")
         profile = self.profiles[matched_user_id]
         user_name = profile.get("name", "Utilisateur")
         height = float(profile.get("height", 175))

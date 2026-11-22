@@ -173,5 +173,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         data = hass.data[DOMAIN].pop(entry.entry_id, None)
         if data and "coordinator" in data:
             data["coordinator"].async_unload()
+        remaining = [k for k in hass.data.get(DOMAIN, {}) if k not in ("ws_registered", "view_registered", "services_registered")]
+        if not remaining:
+            _async_remove_panel(hass)
 
     return unload_ok

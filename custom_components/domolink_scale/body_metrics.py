@@ -175,7 +175,7 @@ def calculate_metrics(
         return res
 
     # 3. Adult human calculations
-    gender = gender.lower()
+    gender = str(gender or "male").strip().lower()
     is_male = gender in ["male", "m", "homme"]
 
     if bmi < 18.5:
